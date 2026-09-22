@@ -1,0 +1,19 @@
+node_modules/
+dist/
+.env
+.env.local
+data/
+*.log
+.DS_Store
+
+# Local credentials, generated research and public exports
+.env.*
+!.env.example
+config.local.yaml
+*.pem
+*.key
+*.p12
+*.sqlite*
+*.db
+backtesting/
+public-export/

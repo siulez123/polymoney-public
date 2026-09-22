@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Scan public source for secrets
+        run: |
+          python3 -m pip install detect-secrets==1.5.0
+          python3 -m detect_secrets scan --all-files --no-verify . > "$RUNNER_TEMP/secrets.json"
+          python3 -c 'import json, os; from pathlib import Path; r=json.loads((Path(os.environ["RUNNER_TEMP"])/"secrets.json").read_text()); findings={p: len(h) for p,h in r["results"].items()}; print(findings); raise SystemExit(bool(findings))'
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: node --test scripts/test_monitor_watchdog.cjs
+      - run: python3 -m unittest discover -s scripts -p 'test_*.py'
+      - run: npm run build
+      - name: Validate public source export
+        run: |
+          python3 scripts/export_public.py --output "$RUNNER_TEMP/polymoney-public"
+          cd "$RUNNER_TEMP/polymoney-public"
+          npm ci
+          npm run typecheck
+          npm test
+          python3 -m unittest discover -s scripts -p 'test_*.py'
+          npm run build

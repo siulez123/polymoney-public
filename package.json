@@ -1,0 +1,39 @@
+{
+  "name": "polymoney",
+  "version": "0.1.0",
+  "description": "Bot para apostar no mercado Polymarket Bitcoin Up/Down 5m",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx watch src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test src/*.test.ts",
+    "derive-api-key": "tsx scripts/derive-clob-creds.ts",
+    "test-deposit-wallet": "bash scripts/run-deposit-wallet-test.sh",
+    "test-secure-client": "tsx scripts/test-secure-client.ts"
+  },
+  "dependencies": {
+    "@polymarket/client": "0.7.0",
+    "@polymarket/clob-client-v2": "^1.0.6",
+    "dotenv": "^16.4.7",
+    "pino": "^9.6.0",
+    "pino-pretty": "^13.0.0",
+    "viem": "^2.23.2",
+    "web-push": "^3.6.7",
+    "ws": "^8.18.1",
+    "yaml": "^2.7.0",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.10",
+    "@types/web-push": "^3.6.4",
+    "@types/ws": "^8.18.1",
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.2"
+  }
+}
+

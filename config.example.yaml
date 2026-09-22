@@ -1,0 +1,123 @@
+# Paper-only example; no wallet credentials required.
+market:
+  slug_prefix: btc-updown-5m
+  window_seconds: 300
+  gamma_api_url: https://gamma-api.polymarket.com
+  discovery_lookahead_windows: 2
+  discovery_retry_ms: 2000
+timing:
+  bet_seconds_before_close: 90
+  bet_min_seconds_before_close: 3
+  bet_retry_interval_ms: 800
+  poll_interval_ms: 100
+  post_close_delay_seconds: 2
+  prepare_before_bet_seconds: 30
+  entry_windows:
+    - seconds_before_close: 180
+      min_delta_bps: 12
+      max_price: 0.82
+  shadow_liquidity_windows:
+    - seconds_before_close: 240
+      min_delta_bps: 12
+      max_price: 0.82
+    - seconds_before_close: 210
+      min_delta_bps: 12
+      max_price: 0.82
+    - seconds_before_close: 180
+      min_delta_bps: 12
+      max_price: 0.82
+    - seconds_before_close: 150
+      min_delta_bps: 12
+      max_price: 0.82
+    - seconds_before_close: 120
+      min_delta_bps: 12
+      max_price: 0.82
+bet:
+  size_shares: 5
+  max_price: 0.9
+  order_type: FAK
+  use_market_order: true
+  market_slippage: 0.01
+staking:
+  mode: fixed
+  base_usd: 12
+  max_stake_usd: 20
+  reinvest_fraction: 0.5
+  reset_on_loss: true
+  recovery_cap:
+    enabled: false
+    max_stake_usd: 20
+    assumed_price: 0.88
+  confidence:
+    enabled: false
+    confidence_at_min: 0.3
+    full_delta_bps: 15
+    default_when_no_delta: 0.7
+    price_penalty_enabled: true
+    price_factor_at_max: 0.85
+  storage_path: ./data/staking.json
+strategy:
+  mode: order_book_imbalance
+  shadow_modes:
+    - book_leader
+    - cheapest
+  fixed_side: up
+  min_delta_bps: 6
+  on_neutral: skip
+  price_feed: chainlink
+  rtds_url: wss://ws-live-data.polymarket.com
+  twap_window_seconds: 30
+  binance_symbol: BTCUSDT
+  fallback_open_price: false
+  fallback_current_price: false
+  chainlink_stale_seconds: 10
+  min_book_mid_gap: 0.05
+trading:
+  mode: paper
+  clob_host: https://clob.polymarket.com
+  chain_id: 137
+  signature_type: 3
+  tick_size: "0.01"
+  neg_risk: false
+  polygon_rpc_url: https://polygon-bor-rpc.publicnode.com
+  geoblock_check: true
+safety:
+  max_bets_per_session: 0
+  max_total_usd: 50
+  max_order_usd: 20
+  min_order_size: 5
+  max_spread: 0
+  require_liquidity: false
+  allow_limit_without_ask: false
+  size_to_depth: true
+  size_to_depth_buffer: 0.9
+  max_consecutive_losses: 2
+  max_daily_loss_usd: 80
+  rolling_pnl_guard:
+    enabled: true
+    window_size: 10
+    min_resolved_bets: 5
+    max_loss_usd: 5
+logging:
+  level: info
+  pretty: true
+server:
+  enabled: true
+  port: 3000
+  host: 127.0.0.1
+telegram:
+  enabled: false
+  notify_on_start: false
+  notify_on_market: false
+  notify_on_bet: false
+  notify_on_skip: false
+  notify_on_error: false
+  notify_on_stop: false
+  notify_on_pnl: false
+  silent: false
+pnl:
+  enabled: true
+  storage_path: ./data/pnl.json
+  resolution_delay_seconds: 15
+  resolution_poll_ms: 5000
+  resolution_max_wait_seconds: 600
