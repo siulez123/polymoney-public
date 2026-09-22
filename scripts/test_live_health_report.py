@@ -92,7 +92,7 @@ class AnalyzeReportTest(unittest.TestCase):
             "totalCost": 4.1,
             "platformFee": 0.05,
             "attemptHistory": [
-                {"attemptedAt": now, "outcome": "failed", "entrySecondsBeforeClose": 90, "side": "up", "price": 0.82, "error": "Sem liquidez utilizável ≤ max_price 0.82: melhor ask 0.910 > max_price 0.82", "strategyReason": "T-90: momentum 13 bps"},
+                {"attemptedAt": now, "outcome": "failed", "entrySecondsBeforeClose": 90, "side": "up", "price": 0.82, "error": "No usable liquidity ≤ max_price 0.82: best ask 0.910 > max_price 0.82", "strategyReason": "T-90: momentum 13 bps"},
                 {"attemptedAt": now, "outcome": "unfilled", "entrySecondsBeforeClose": 60, "side": "up", "price": 0.85, "error": "No orders found to match", "strategyReason": "T-60: momentum 11 bps"},
                 {"attemptedAt": now, "outcome": "filled", "entrySecondsBeforeClose": 40, "side": "up", "price": 0.86, "strategyReason": "T-40: momentum 12 bps"},
             ],
@@ -111,19 +111,19 @@ class AnalyzeReportTest(unittest.TestCase):
 
     def test_classifies_actionable_sanitized_failures(self) -> None:
         self.assertEqual(
-            REPORT.classify_fail("Sem liquidez utilizável ≤ max_price 0.82: book sem asks"),
+            REPORT.classify_fail("No usable liquidity ≤ max_price 0.82: book has no asks"),
             "no_liquidity",
         )
         self.assertEqual(
-            REPORT.classify_fail("melhor ask 0.910 > max_price 0.82"),
+            REPORT.classify_fail("best ask 0.910 > max_price 0.82"),
             "price_above_limit",
         )
         self.assertEqual(
-            REPORT.classify_fail("depth=$3.00 / 4.00 sh (mín. ordem não cabe)"),
+            REPORT.classify_fail("depth=$3.00 / 4.00 sh (minimum order does not fit)"),
             "insufficient_depth",
         )
         self.assertEqual(
-            REPORT.classify_fail("Sem liquidez utilizável ≤ max_price 0.82"),
+            REPORT.classify_fail("No usable liquidity ≤ max_price 0.82"),
             "depth_or_max_price",
         )
         self.assertEqual(REPORT.classify_fail("Chainlink feed stale"), "feed_unavailable")
@@ -133,18 +133,18 @@ class AnalyzeReportTest(unittest.TestCase):
 
     def test_buckets_price_distance_without_exposing_exact_prices(self) -> None:
         self.assertEqual(
-            REPORT.price_distance_bucket("melhor ask 0.83 > max_price 0.82"),
+            REPORT.price_distance_bucket("best ask 0.83 > max_price 0.82"),
             "lte_0_01",
         )
         self.assertEqual(
-            REPORT.price_distance_bucket("melhor ask 0.85 > max_price 0.82"),
+            REPORT.price_distance_bucket("best ask 0.85 > max_price 0.82"),
             "gt_0_01_lte_0_03",
         )
         self.assertEqual(
-            REPORT.price_distance_bucket("melhor ask 0.91 > max_price 0.82"),
+            REPORT.price_distance_bucket("best ask 0.91 > max_price 0.82"),
             "gt_0_05",
         )
-        self.assertIsNone(REPORT.price_distance_bucket("book sem asks"))
+        self.assertIsNone(REPORT.price_distance_bucket("book has no asks"))
 
     def test_treats_legacy_placed_outcome_as_a_fill_per_window(self) -> None:
         now = placed_at()
@@ -175,7 +175,7 @@ class AnalyzeReportTest(unittest.TestCase):
                 "outcome": "failed",
                 "entrySecondsBeforeClose": 90,
                 "side": "up",
-                "error": "Sem liquidez utilizável ≤ max_price 0.82",
+                "error": "No usable liquidity ≤ max_price 0.82",
                 "strategyReason": "T-90: momentum 13 bps",
             }
             for _ in range(8)
@@ -212,7 +212,7 @@ class AnalyzeReportTest(unittest.TestCase):
                     "outcome": "failed",
                     "entrySecondsBeforeClose": 90,
                     "side": "up",
-                    "error": "melhor ask 0.910 > max_price 0.82",
+                    "error": "best ask 0.910 > max_price 0.82",
                     "strategyReason": "T-90: momentum 13 bps",
                 }],
             }
@@ -247,7 +247,7 @@ class AnalyzeReportTest(unittest.TestCase):
                 "outcome": "failed",
                 "entrySecondsBeforeClose": 90,
                 "side": "up",
-                "error": "Sem liquidez",
+                "error": "No liquidity",
                 "shadowLiquidity": {
                     "configuredMaxPrice": 0.82,
                     "globalMaxPrice": 0.9,

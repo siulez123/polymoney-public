@@ -19,7 +19,7 @@ test("manual dashboard resume can force-clear a circuit-breaker pause", () => {
       rollingPnlUsd: 0,
       rollingResolvedBets: 0,
       dayKey: new Date().toISOString().slice(0, 10),
-      pausedReason: "2 perdas consecutivas (limite 2)",
+      pausedReason: "2 consecutive losses (limit 2)",
       recentResolvedPnls: [-4, -4],
       seenResolutionKeys: [],
       updatedAt: new Date().toISOString(),
@@ -28,7 +28,7 @@ test("manual dashboard resume can force-clear a circuit-breaker pause", () => {
 
     const guard = new RiskGuard();
     assert.equal(guard.clearPause(false), false);
-    assert.equal(guard.getStatus().pausedReason, "2 perdas consecutivas (limite 2)");
+    assert.equal(guard.getStatus().pausedReason, "2 consecutive losses (limit 2)");
 
     assert.equal(guard.clearPause(true), true);
     assert.deepEqual(guard.getStatus(), {
@@ -69,7 +69,7 @@ test("rolling P&L guard pauses only after the configured minimum sample", () => 
     }
 
     const fifth = { id: "5", resolved: true, won: false, pnl: -2 } as BetRecord;
-    assert.match(guard.onResolved(fifth, config) ?? "", /P&L móvel -10\.00 USD em 5 operações/);
+    assert.match(guard.onResolved(fifth, config) ?? "", /Rolling P&L -10\.00 USD over 5 trades/);
     assert.equal(guard.getStatus().rollingPnlUsd, -10);
     assert.equal(guard.getStatus().rollingResolvedBets, 5);
   } finally {

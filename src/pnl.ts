@@ -23,7 +23,7 @@ export function isFilledOutcome(outcome: BetOutcome): boolean {
   return outcome === "filled" || outcome === "placed";
 }
 
-/** Apostas que entram no P&L (live ou paper simulado). */
+/** Bets included in P&L (live or simulated paper). */
 export function isActionableBet(outcome: BetOutcome): boolean {
   return isFilledOutcome(outcome) || outcome === "paper";
 }
@@ -243,7 +243,7 @@ export class PnlTracker {
         "P&L carregado",
       );
     } catch (err) {
-      this.log.warn({ err }, "Falha ao carregar P&L, a começar do zero");
+      this.log.warn({ err }, "Failed to load P&L, starting from zero");
     }
   }
 
@@ -259,11 +259,11 @@ export class PnlTracker {
 
     if (existingIdx >= 0) {
       const existing = this.bets[existingIdx]!;
-      // Multi-T: nunca sobrescrever um fill com skip/unfilled posteriores
+      // Multi-T: never overwrite a fill with later skipped/unfilled attempts
       if (isFilledOutcome(existing.outcome ?? "filled") && !isFilledOutcome(record.outcome)) {
         this.log.debug(
           { slug: existing.marketSlug, kept: existing.outcome, ignored: record.outcome },
-          "Fill existente — tentativa posterior ignorada no histórico",
+          "Existing fill — later attempt ignored in history",
         );
         return existing;
       }
@@ -282,7 +282,7 @@ export class PnlTracker {
       this.save();
       this.log.info(
         { slug: updated.marketSlug, outcome: updated.outcome, orderId: updated.orderId },
-        "Tentativa atualizada no histórico",
+        "Attempt updated in history",
       );
       return updated;
     }
@@ -300,20 +300,20 @@ export class PnlTracker {
         orderId: record.orderId,
         error: record.error,
       },
-      "Tentativa registada no histórico",
+      "Attempt recorded in history",
     );
 
     return record;
   }
 
   /**
-   * Acrescenta telemetria shadow sem substituir o outcome live do mercado.
-   * O resultado recebido deve ser sempre skipped/side=null; esta guarda impede regressões.
+   * Append shadow telemetry without replacing the live market outcome.
+   * The received result must always be skipped/side=null; this guard prevents regressions.
    */
   recordShadowObservation(market: DiscoveredMarket, result: BetResult): BetRecord | null {
     if (!this.config.pnl.enabled) return null;
     if (!result.skipped || result.side !== null || result.submitted) {
-      throw new Error("Observações shadow não podem representar ou submeter uma ordem");
+      throw new Error("Shadow observations cannot represent or submit an order");
     }
 
     const existingIdx = this.bets.findIndex((bet) => bet.marketSlug === result.marketSlug);
@@ -327,7 +327,7 @@ export class PnlTracker {
       this.save();
       this.log.info(
         { slug: existing.marketSlug, strategyReason: result.strategyReason },
-        "Observação shadow acrescentada ao histórico",
+        "Shadow observation appended to history",
       );
       return existing;
     }
@@ -338,7 +338,7 @@ export class PnlTracker {
     this.save();
     this.log.info(
       { slug: record.marketSlug, strategyReason: result.strategyReason },
-      "Primeira observação shadow registada para o mercado",
+      "First shadow observation recorded for market",
     );
     return record;
   }
@@ -376,14 +376,14 @@ export class PnlTracker {
       return record;
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      this.log.warn({ slug: market.slug, err: message }, "P&L ainda pendente (à espera de Gamma)");
+      this.log.warn({ slug: market.slug, err: message }, "P&L still pending (waiting for Gamma)");
       return record;
     }
   }
 
   /**
-   * Reconcilia apostas: resolve pendentes via Gamma e corrige falsas resoluções Chainlink.
-   * Devolve registos cujo resultado mudou nesta passagem.
+   * Reconcile bets: resolve pending results via Gamma and correct false Chainlink resolutions.
+   * Return records whose outcome changed in this pass.
    */
   async reconcileAgainstGamma(): Promise<BetRecord[]> {
     if (!this.config.pnl.enabled) return [];
@@ -436,7 +436,7 @@ export class PnlTracker {
           oldPnl: oldPnl.toFixed(2),
           newPnl: (record.pnl ?? 0).toFixed(2),
         },
-        "Resolução Chainlink corrigida pela Gamma oficial",
+        "Chainlink resolution corrected by official Gamma result",
       );
     }
 

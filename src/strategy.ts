@@ -44,13 +44,13 @@ async function resolveOpenPrice(
   log: Logger,
 ): Promise<{ price: number; source: "chainlink" | "binance" } | null> {
   const windowStartMs = market.windowStartUnix * 1000;
-  // Polymarket resolve com Chainlink — janela larga p/ apanhar o tick do open
+  // Polymarket resolves with Chainlink — wide window to capture the opening tick
   const fromFeed = feed.getPriceNear(windowStartMs, 30_000);
   if (fromFeed !== null) {
     return { price: fromFeed, source: config.strategy.price_feed === "binance" ? "binance" : "chainlink" };
   }
 
-  // Só usar Binance para open se o feed principal for Binance
+  // Only use Binance for open prices if the primary feed is Binance
   if (config.strategy.price_feed === "binance" && config.strategy.fallback_open_price) {
     const fromBinance = await fetchBinanceOpenPrice(
       config.strategy.binance_symbol,
@@ -73,9 +73,9 @@ async function resolveCurrentPrice(
   const source = feed.getCurrentPriceSource();
   const currentPrice = feed.getCurrentPrice();
   if (currentPrice !== null && source !== null) {
-    // Com feed Chainlink, não misturar current Binance no sinal de momentum
+    // With Chainlink feed, do not mix Binance current prices into momentum signals
     if (config.strategy.price_feed === "chainlink" && source !== "chainlink") {
-      log.info({ source, currentPrice }, "Current Binance ignorado — sinal exige Chainlink");
+      log.info({ source, currentPrice }, "Binance current price ignored — signal requires Chainlink");
       return null;
     }
     return { price: currentPrice, source };
@@ -117,7 +117,7 @@ async function momentumStrategy(
   if (current === null || open === null) {
     return {
       side: resolveNeutral(config),
-      reason: "preço indisponível (open ou current Chainlink)",
+      reason: "price unavailable (Chainlink open or current)",
       signal: {
         openPrice: open?.price,
         currentPrice: current?.price,
@@ -130,7 +130,7 @@ async function momentumStrategy(
   if (open.source !== current.source) {
     return {
       side: resolveNeutral(config),
-      reason: `fontes inconsistentes open=${open.source} current=${current.source}`,
+      reason: `inconsistent sources open=${open.source} current=${current.source}`,
       signal: {
         openPrice: open.price,
         currentPrice: current.price,
@@ -150,7 +150,7 @@ async function momentumStrategy(
   };
 
   if (Math.abs(deltaBps) < minDeltaBps) {
-    log.info({ deltaBps, minDeltaBps, openSource: open.source, currentSource: current.source }, "Sinal neutro — delta abaixo do mínimo");
+    log.info({ deltaBps, minDeltaBps, openSource: open.source, currentSource: current.source }, "Neutral signal — delta below minimum");
     return {
       side: resolveNeutral(config),
       reason: `delta ${deltaBps.toFixed(2)} bps < min ${minDeltaBps} bps`,
@@ -161,7 +161,7 @@ async function momentumStrategy(
   const side: "up" | "down" = deltaBps > 0 ? "up" : "down";
   return {
     side,
-    reason: `momentum(${open.source}): BTC ${deltaBps > 0 ? "acima" : "abaixo"} do open (${deltaBps.toFixed(2)} bps)`,
+    reason: `momentum(${open.source}): BTC ${deltaBps > 0 ? "above" : "below"} the open (${deltaBps.toFixed(2)} bps)`,
     signal,
   };
 }
@@ -176,7 +176,7 @@ function bookLeaderStrategy(
   if (upMid === null || downMid === null) {
     return {
       side: resolveNeutral(config),
-      reason: "book incompleto",
+      reason: "incomplete book",
       signal: { upMid: upMid ?? undefined, downMid: downMid ?? undefined },
     };
   }
@@ -224,16 +224,16 @@ function multiHorizonStrategy(
     mediumReturnBps: values[1] ?? undefined,
     longReturnBps: values[2] ?? undefined,
   };
-  if (available.length < 2) return { side: null, reason: "histórico insuficiente para multi-horizon", signal };
+  if (available.length < 2) return { side: null, reason: "insufficient history for multi-horizon", signal };
   const up = available.filter((value) => value > 0).length;
   const down = available.filter((value) => value < 0).length;
   const average = available.reduce((sum, value) => sum + value, 0) / available.length;
   if (Math.max(up, down) < 2 || Math.abs(average) < threshold) {
-    return { side: null, reason: "horizontes sem confirmação suficiente", signal };
+    return { side: null, reason: "insufficient confirmation across horizons", signal };
   }
   return {
     side: up > down ? "up" : "down",
-    reason: `momentum_multi_horizon: ${up} up / ${down} down, média ${average.toFixed(2)} bps`,
+    reason: `momentum_multi_horizon: ${up} up / ${down} down, average ${average.toFixed(2)} bps`,
     signal,
   };
 }
@@ -251,7 +251,7 @@ function meanReversionStrategy(
   }
   return {
     side: short > 0 ? "down" : "up",
-    reason: `mean_reversion: contra movimento de ${short.toFixed(2)} bps/30s`,
+    reason: `mean_reversion: against a move of ${short.toFixed(2)} bps/30s`,
     signal,
   };
 }
@@ -269,10 +269,10 @@ function orderBookImbalanceStrategy(
 ): StrategyDecision {
   const up = bookImbalance(books.up);
   const down = bookImbalance(books.down);
-  if (up === null || down === null) return { side: null, reason: "order_book_imbalance: book incompleto" };
+  if (up === null || down === null) return { side: null, reason: "order_book_imbalance: incomplete book" };
   const gap = up - down;
   if (Math.abs(gap) < config.strategy.min_book_mid_gap) {
-    return { side: null, reason: "order_book_imbalance: diferença insuficiente", signal: { score: gap } };
+    return { side: null, reason: "order_book_imbalance: insufficient difference", signal: { score: gap } };
   }
   return {
     side: gap > 0 ? "up" : "down",
@@ -292,11 +292,11 @@ async function crossMarketConfirmationStrategy(
   const momentum = await momentumStrategy(config, market, feed, log, overrides);
   const predictionMarket = bookLeaderStrategy(config, books);
   if (!momentum.side || momentum.side !== predictionMarket.side) {
-    return { side: null, reason: "cross_market_confirmation: Chainlink e CLOB não concordam", signal: momentum.signal };
+    return { side: null, reason: "cross_market_confirmation: Chainlink and CLOB disagree", signal: momentum.signal };
   }
   return {
     side: momentum.side,
-    reason: `cross_market_confirmation: Chainlink e CLOB confirmam ${momentum.side}`,
+    reason: `cross_market_confirmation: Chainlink and CLOB confirm ${momentum.side}`,
     signal: { ...momentum.signal, ...predictionMarket.signal },
   };
 }
@@ -308,7 +308,7 @@ function feeAwareValueStrategy(
   const upMid = midPrice(books.up);
   const downMid = midPrice(books.down);
   if (upMid === null || downMid === null || upMid + downMid <= 0) {
-    return { side: null, reason: "fee_aware_value: fair value indisponível" };
+    return { side: null, reason: "fee_aware_value: fair value unavailable" };
   }
   const upProbability = upMid / (upMid + downMid);
   const candidates = (["up", "down"] as const).map((side) => {
@@ -324,7 +324,7 @@ function feeAwareValueStrategy(
   }
   return {
     side: best.side,
-    reason: `fee_aware_value: edge ${(best.edge * 100).toFixed(2)}% após fee`,
+    reason: `fee_aware_value: edge ${(best.edge * 100).toFixed(2)}% after fee`,
     signal: { estimatedProbability: best.probability, estimatedEdge: best.edge, upMid, downMid },
   };
 }
@@ -346,10 +346,10 @@ async function ensembleStrategy(
   const votesUp = decisions.filter((decision) => decision.side === "up").length;
   const votesDown = decisions.filter((decision) => decision.side === "down").length;
   if (Math.max(votesUp, votesDown) < 2 || votesUp === votesDown) {
-    return { side: null, reason: "ensemble: sem maioria de 2 votos", signal: { votesUp, votesDown } };
+    return { side: null, reason: "ensemble: no majority of 2 votes", signal: { votesUp, votesDown } };
   }
   const side = votesUp > votesDown ? "up" : "down";
-  return { side, reason: `ensemble: ${side} por ${Math.max(votesUp, votesDown)} votos`, signal: { votesUp, votesDown } };
+  return { side, reason: `ensemble: ${side} with ${Math.max(votesUp, votesDown)} votes`, signal: { votesUp, votesDown } };
 }
 
 export async function decideSide(
@@ -374,38 +374,38 @@ export async function decideSide(
 
     case "momentum":
       if (!feed) {
-        return { side: resolveNeutral(config), reason: "feed de preço não disponível" };
+        return { side: resolveNeutral(config), reason: "price feed unavailable" };
       }
       return momentumStrategy(config, market, feed, log, overrides);
 
     case "passive_maker":
-      if (!feed) return { side: null, reason: "passive_maker: feed indisponível" };
+      if (!feed) return { side: null, reason: "passive_maker: feed unavailable" };
       return momentumStrategy(config, market, feed, log, overrides);
 
     case "momentum_multi_horizon":
-      if (!feed) return { side: null, reason: "multi-horizon: feed indisponível" };
+      if (!feed) return { side: null, reason: "multi-horizon: feed unavailable" };
       return multiHorizonStrategy(config, feed, overrides);
 
     case "mean_reversion":
-      if (!feed) return { side: null, reason: "mean_reversion: feed indisponível" };
+      if (!feed) return { side: null, reason: "mean_reversion: feed unavailable" };
       return meanReversionStrategy(config, feed, overrides);
 
     case "order_book_imbalance":
       return orderBookImbalanceStrategy(config, books);
 
     case "cross_market_confirmation":
-      if (!feed) return { side: null, reason: "cross-market: feed indisponível" };
+      if (!feed) return { side: null, reason: "cross-market: feed unavailable" };
       return crossMarketConfirmationStrategy(config, market, books, feed, log, overrides);
 
     case "fee_aware_value":
       return feeAwareValueStrategy(config, books);
 
     case "ensemble":
-      if (!feed) return { side: null, reason: "ensemble: feed indisponível" };
+      if (!feed) return { side: null, reason: "ensemble: feed unavailable" };
       return ensembleStrategy(config, market, books, feed, log, overrides);
 
     default:
-      return { side: null, reason: `modo desconhecido: ${mode}` };
+      return { side: null, reason: `unknown mode: ${mode}` };
   }
 }
 

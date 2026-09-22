@@ -1,7 +1,7 @@
 {
   "name": "polymoney",
   "version": "0.1.0",
-  "description": "Bot para apostar no mercado Polymarket Bitcoin Up/Down 5m",
+  "description": "Research and paper trading bot for the Polymarket Bitcoin Up/Down 5-minute market",
   "type": "module",
   "engines": {
     "node": ">=24"

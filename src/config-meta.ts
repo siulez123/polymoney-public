@@ -1,4 +1,4 @@
-/** Metadados estruturais dos campos de config (labels via i18n). */
+/** Structural metadata for config fields (labels via i18n). */
 
 import { getPack, type Locale } from "./i18n/index.js";
 
@@ -185,9 +185,9 @@ const SECTION_DEFS: SectionDef[] = [
 ];
 
 /** @deprecated Prefer getConfigSections(locale) */
-export const CONFIG_SECTIONS: ConfigSectionMeta[] = getConfigSections("pt");
+export const CONFIG_SECTIONS: ConfigSectionMeta[] = getConfigSections("en");
 
-export function getConfigSections(locale: Locale = "pt"): ConfigSectionMeta[] {
+export function getConfigSections(locale: Locale = "en"): ConfigSectionMeta[] {
   const pack = getPack(locale).config;
   return SECTION_DEFS.map((section) => {
     const sec = pack.sections[section.id] ?? { title: section.id };

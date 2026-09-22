@@ -33,10 +33,10 @@ async function main(): Promise<void> {
 
   const feed = needsPriceFeed(config) ? new PriceFeed(config, log, (alert) => {
     const recovered = alert.kind === "recovered";
-    const title = recovered ? "Feed Chainlink recuperado" : "Feed Chainlink stale";
+    const title = recovered ? "Chainlink feed recovered" : "Chainlink feed stale";
     const body = recovered
-      ? `Preços restaurados após reconexão automática (${alert.watchdogReconnects} watchdog).`
-      : `Sem preços frescos há ${Math.round(alert.staleForSeconds)}s; reconexão automática iniciada.`;
+      ? `Prices restored after automatic reconnection (${alert.watchdogReconnects} watchdog).`
+      : `No fresh prices for ${Math.round(alert.staleForSeconds)}s; automatic reconnection started.`;
     telegram.notify(`${recovered ? "✅" : "⚠️"} <b>${title}</b>\n${body}`);
     void webPush.notifySystem(title, body, `feed-${alert.kind}-${alert.at}`);
   }) : null;
@@ -49,7 +49,7 @@ async function main(): Promise<void> {
   const accountBalance = new AccountBalanceTracker();
   staking.setBalanceProvider(() => accountBalance.getCurrentBalanceUsd());
 
-  // Health server primeiro — Railway faz healthcheck logo ao arrancar
+  // Health server first — Railway checks health immediately on startup
   const healthServer = startHealthServer(
     { config, state, pnlTracker, telegram, feed, wallet, accountBalance, staking, riskGuard, webPush },
     log,
@@ -61,7 +61,7 @@ async function main(): Promise<void> {
 
   if (config.trading.mode === "live") {
     await checkGeoblock(config, log);
-    // SecureClient primeiro: deriva o deposit wallet correcto (walletType 3)
+    // SecureClient first: derive the correct deposit wallet (walletType 3)
     const secure = await initSecureClient(secrets, log);
     const derived = secure.account.wallet;
     if (secrets.depositWalletAddress.toLowerCase() !== derived.toLowerCase()) {
@@ -69,7 +69,7 @@ async function main(): Promise<void> {
       wallet.polymarketAccount = derived;
       resetClobClient();
     }
-    // ClobClient mantém-se para saldo / reads com o funder correcto
+    // Keep ClobClient for balance / reads with the correct funder
     await initClobClient(config, secrets, log);
     log.info(
       {
@@ -77,17 +77,17 @@ async function main(): Promise<void> {
         signer: wallet.signerAddress,
         walletType: secure.account.walletType,
       },
-      "Conta Polymarket (SecureClient) pronta para live",
+      "Polymarket account (SecureClient) ready for live",
     );
   }
 
   accountBalance.start(config, secrets, log);
 
-  // Corrige falsas resoluções Chainlink / pendentes assim que o bot arranca
+  // Correct false Chainlink resolutions / pending results when the bot starts
   void pnlTracker.reconcileAgainstGamma().then((changed) => {
     if (changed.length > 0) {
       state.pnl = pnlTracker.getSummary();
-      log.info({ corrected: changed.length }, "Reconciliação Gamma no arranque");
+      log.info({ corrected: changed.length }, "Gamma reconciliation on startup");
     }
   });
 
@@ -106,15 +106,15 @@ async function main(): Promise<void> {
     (config.staking.mode === "paroli" || config.staking.recovery_cap.enabled)
     && !config.pnl.enabled
   ) {
-    log.warn("paroli/recovery_cap requer pnl.enabled=true para atualizar a banca após resolução");
+    log.warn("paroli/recovery_cap requires pnl.enabled=true to update bankroll after resolution");
   }
 
   if (config.staking.mode === "all_in") {
-    log.info("Staking all_in: cada aposta usa 100% do saldo USDC disponível");
+    log.info("Staking all_in: each bet uses 100% of the available USDC balance");
   }
 
   const shutdown = (signal: string) => {
-    log.info({ signal }, "Shutdown recebido");
+    log.info({ signal }, "Shutdown received");
     telegram.notifyStopped(signal);
     telegram.stopCommandPolling();
     controller.abort();

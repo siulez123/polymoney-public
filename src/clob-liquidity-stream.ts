@@ -58,8 +58,8 @@ function updateLevel(
 }
 
 /**
- * Aplica uma mensagem pública do market channel a uma cache de books.
- * Exportada para testes; não contém credenciais nem envia ordens.
+ * Apply a public market channel message to the book cache.
+ * Exported for tests; contains no credentials and submits no orders.
  */
 export function applyClobMarketMessage(
   cache: Map<string, OrderBookSnapshot>,
@@ -164,7 +164,7 @@ export class ClobLiquidityStream {
   private connect(generation: number): void {
     if (!this.running || generation !== this.generation || !this.market) return;
     const market = this.market;
-    this.log.info({ slug: market.slug }, "A ligar stream público CLOB (shadow-only)");
+    this.log.info({ slug: market.slug }, "Connecting public CLOB stream (shadow-only)");
     const ws = new WebSocket(CLOB_MARKET_WS_URL);
     this.ws = ws;
 
@@ -191,14 +191,14 @@ export class ClobLiquidityStream {
           void Promise.resolve(this.listener(books, new Date().toISOString())).catch((err) => {
             this.log.warn(
               { err: err instanceof Error ? err.message : String(err) },
-              "Falha no consumidor shadow do stream CLOB",
+              "CLOB stream shadow consumer failed",
             );
           });
         }
       } catch (err) {
         this.log.debug(
           { err: err instanceof Error ? err.message : String(err) },
-          "Mensagem CLOB ignorada",
+          "CLOB message ignored",
         );
       }
     });
@@ -208,12 +208,12 @@ export class ClobLiquidityStream {
       this.clearPing();
       this.ws = null;
       if (!this.running || generation !== this.generation) return;
-      this.log.warn({ slug: market.slug }, "Stream CLOB desligado; a reconectar");
+      this.log.warn({ slug: market.slug }, "CLOB stream disconnected; reconnecting");
       this.reconnectTimer = setTimeout(() => this.connect(generation), RECONNECT_MS);
     });
 
     ws.on("error", () => {
-      this.log.warn({ slug: market.slug }, "Erro no stream público CLOB");
+      this.log.warn({ slug: market.slug }, "Public CLOB stream error");
     });
   }
 

@@ -41,8 +41,8 @@ function writeJson(path: string, data: unknown): void {
 }
 
 /**
- * Web Push (VAPID) para notificações GANHOU/PERDEU com a app em background.
- * SSE da página não corre quando o OS suspende o PWA — push sim.
+ * Web Push (VAPID) for WON/LOST notifications with the app in the background.
+ * Page SSE stops when the OS suspends the PWA — push continues.
  */
 export class WebPushNotifier {
   private ready = false;
@@ -87,7 +87,7 @@ export class WebPushNotifier {
         subject: this.subject,
       };
       writeJson(this.vapidPath, store);
-      this.log.info({ path: this.vapidPath }, "VAPID keys geradas para Web Push");
+      this.log.info({ path: this.vapidPath }, "VAPID keys generated for Web Push");
     }
 
     if (fromEnvSub) this.subject = fromEnvSub;
@@ -103,7 +103,7 @@ export class WebPushNotifier {
         subscribers: this.subscriptions.length,
         publicKeyPrefix: this.publicKey.slice(0, 12) + "…",
       },
-      "Web Push pronto (notificações em background)",
+      "Web Push ready (background notifications)",
     );
   }
 
@@ -121,13 +121,13 @@ export class WebPushNotifier {
 
   subscribe(sub: PushSubscriptionJSON): void {
     if (!sub?.endpoint || !sub.keys?.p256dh || !sub.keys?.auth) {
-      throw new Error("Subscription inválida");
+      throw new Error("Invalid subscription");
     }
     const idx = this.subscriptions.findIndex((s) => s.endpoint === sub.endpoint);
     if (idx >= 0) this.subscriptions[idx] = sub;
     else this.subscriptions.push(sub);
     this.saveSubs();
-    this.log.info({ subscribers: this.subscriptions.length }, "Web Push: subscription registada");
+    this.log.info({ subscribers: this.subscriptions.length }, "Web Push: subscription registered");
   }
 
   unsubscribe(endpoint: string): void {
@@ -135,7 +135,7 @@ export class WebPushNotifier {
     this.subscriptions = this.subscriptions.filter((s) => s.endpoint !== endpoint);
     if (this.subscriptions.length !== before) {
       this.saveSubs();
-      this.log.info({ subscribers: this.subscriptions.length }, "Web Push: subscription removida");
+      this.log.info({ subscribers: this.subscriptions.length }, "Web Push: subscription removed");
     }
   }
 
@@ -187,7 +187,7 @@ export class WebPushNotifier {
           if (status === 404 || status === 410) {
             stale.push(sub.endpoint);
           } else {
-            this.log.warn({ err: message, status }, "Web Push: falha ao enviar");
+            this.log.warn({ err: message, status }, "Web Push: failed to send");
           }
         }
       }),
@@ -208,12 +208,12 @@ export class WebPushNotifier {
 }
 
 export function parsePushSubscription(raw: unknown): PushSubscriptionJSON {
-  if (!raw || typeof raw !== "object") throw new Error("Body inválido");
+  if (!raw || typeof raw !== "object") throw new Error("Invalid body");
   const o = raw as Record<string, unknown>;
   const keys = o.keys as Record<string, unknown> | undefined;
-  if (typeof o.endpoint !== "string" || !keys) throw new Error("Subscription inválida");
+  if (typeof o.endpoint !== "string" || !keys) throw new Error("Invalid subscription");
   if (typeof keys.p256dh !== "string" || typeof keys.auth !== "string") {
-    throw new Error("Subscription keys inválidas");
+    throw new Error("Invalid subscription keys");
   }
   return {
     endpoint: o.endpoint,

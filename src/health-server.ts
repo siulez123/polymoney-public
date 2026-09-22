@@ -65,7 +65,7 @@ function readBody(req: IncomingMessage, maxBytes = 64_000): Promise<string> {
     req.on("data", (chunk: Buffer) => {
       size += chunk.length;
       if (size > maxBytes) {
-        reject(new Error("Body demasiado grande"));
+        reject(new Error("Body too large"));
         req.destroy();
         return;
       }
@@ -105,7 +105,7 @@ export function startHealthServer(
       return;
     }
 
-    // PWA assets públicos (SW precisa registar sem token)
+    // Public PWA assets (SW must register without a token)
     if (path === "/manifest.webmanifest") {
       res.writeHead(200, {
         "Content-Type": "application/manifest+json; charset=utf-8",
@@ -168,7 +168,7 @@ export function startHealthServer(
       const push = ctx.webPush;
       if (!push?.isReady()) {
         res.writeHead(503, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ ok: false, error: "Web Push não configurado" }));
+        res.end(JSON.stringify({ ok: false, error: "Web Push not configured" }));
         return;
       }
       res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" });
@@ -184,7 +184,7 @@ export function startHealthServer(
       const push = ctx.webPush;
       if (!push?.isReady()) {
         res.writeHead(503, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ ok: false, error: "Web Push não configurado" }));
+        res.end(JSON.stringify({ ok: false, error: "Web Push not configured" }));
         return;
       }
       void readBody(req)
@@ -206,13 +206,13 @@ export function startHealthServer(
       const push = ctx.webPush;
       if (!push?.isReady()) {
         res.writeHead(503, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ ok: false, error: "Web Push não configurado" }));
+        res.end(JSON.stringify({ ok: false, error: "Web Push not configured" }));
         return;
       }
       void readBody(req)
         .then((raw) => {
           const body = JSON.parse(raw) as { endpoint?: string };
-          if (!body.endpoint) throw new Error("endpoint em falta");
+          if (!body.endpoint) throw new Error("endpoint missing");
           push.unsubscribe(body.endpoint);
           res.writeHead(200, { "Content-Type": "application/json" });
           res.end(JSON.stringify({ ok: true, subscribers: push.getSubscriberCount() }));
@@ -231,7 +231,7 @@ export function startHealthServer(
         const cleared = ctx.riskGuard?.clearPause(true) ?? false;
         if (!cleared) {
           res.writeHead(409, { "Content-Type": "application/json" });
-          res.end(JSON.stringify({ ok: false, error: `Não foi possível limpar o RiskGuard: ${previousRisk.pausedReason}` }));
+          res.end(JSON.stringify({ ok: false, error: `Could not clear RiskGuard: ${previousRisk.pausedReason}` }));
           return;
         }
       }
@@ -240,7 +240,7 @@ export function startHealthServer(
       state.lastError = null;
       log.info(
         { clearedRiskPause: previousRisk?.pausedReason ?? null },
-        "Trading retomado manualmente via dashboard",
+        "Trading manually resumed from dashboard",
       );
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify({
@@ -254,11 +254,11 @@ export function startHealthServer(
     if (path === "/api/trading/stop" && req.method === "POST") {
       state.tradingActive = false;
       state.status = "paused";
-      state.lastError = "Trading pausado manualmente via dashboard";
-      log.info("Trading pausado via dashboard");
+      state.lastError = "Trading manually paused from dashboard";
+      log.info("Trading paused from dashboard");
       void ctx.webPush?.notifySystem(
-        "Polymoney pausado",
-        "Trading pausado manualmente no dashboard.",
+        "Polymoney paused",
+        "Trading manually paused in the dashboard.",
         "manual-pause",
       );
       res.writeHead(200, { "Content-Type": "application/json" });
@@ -283,7 +283,7 @@ export function startHealthServer(
         res.end(body);
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
-        log.warn({ err: message }, "Falha GET /api/config");
+        log.warn({ err: message }, "GET /api/config failed");
         const body = JSON.stringify({ ok: false, error: message });
         res.writeHead(500, { "Content-Type": "application/json; charset=utf-8" });
         res.end(body);
@@ -297,10 +297,10 @@ export function startHealthServer(
         .then((raw) => {
           const body = JSON.parse(raw) as { config?: unknown };
           if (!body.config || typeof body.config !== "object") {
-            throw new Error("Body inválido: esperado { config: {...} }");
+            throw new Error("Invalid body: expected { config: {...} }");
           }
           const { requiresRestart } = updateConfigInPlace(ctx.config, body.config);
-          log.info({ requiresRestart }, "Config atualizada via dashboard");
+          log.info({ requiresRestart }, "Configuration updated from dashboard");
           res.writeHead(200, { "Content-Type": "application/json" });
           res.end(JSON.stringify({
             ok: true,
@@ -314,7 +314,7 @@ export function startHealthServer(
           const message = err instanceof ZodError
             ? err.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ")
             : err instanceof Error ? err.message : String(err);
-          log.warn({ err: message }, "Falha ao atualizar config");
+          log.warn({ err: message }, "Failed to update configuration");
           res.writeHead(400, { "Content-Type": "application/json" });
           res.end(JSON.stringify({ ok: false, error: message }));
         });
@@ -349,10 +349,10 @@ export function startHealthServer(
         dashboard: authEnabled ? "/pnl?token=..." : "/pnl",
         dashboardAuth: authEnabled,
       },
-      "Health server ativo",
+      "Health server active",
     );
     if (!authEnabled) {
-      log.warn("DASHBOARD_TOKEN não definido — dashboard público");
+      log.warn("DASHBOARD_TOKEN is not set — dashboard is public");
     }
   });
 

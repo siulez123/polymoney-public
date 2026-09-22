@@ -210,7 +210,7 @@ export class PriceFeed {
     return best.price;
   }
 
-  /** Retorno sanitizado do feed atual face ao tick mais próximo de N segundos atrás. */
+  /** Sanitized current feed return relative to the nearest tick N seconds ago. */
   getReturnBps(secondsAgo: number): number | null {
     const current = this.getCurrentPrice();
     const previous = this.getPriceNear(Date.now() - secondsAgo * 1000, 5000);
@@ -231,7 +231,7 @@ export class PriceFeed {
       return { price: this.binancePrice, source: "binance" };
     }
 
-    // Não devolver Chainlink stale — o momentum exige tick fresco
+    // Do not return stale Chainlink prices — momentum requires a fresh tick
     return { price: null, source: null };
   }
 
@@ -268,7 +268,7 @@ export class PriceFeed {
       this.emitAlert("recovered", 0);
       this.log.info(
         { watchdogReconnects: this.chainlinkWatchdogReconnects },
-        "Watchdog Chainlink confirmou recuperação do feed",
+        "Chainlink watchdog confirmed feed recovery",
       );
     }
   }
@@ -289,7 +289,7 @@ export class PriceFeed {
 
   private connectChainlink(): void {
     const url = this.config.strategy.rtds_url;
-    this.log.info({ url }, "A ligar feed Chainlink TWAP RTDS");
+    this.log.info({ url }, "Connecting Chainlink TWAP RTDS feed");
 
     this.ws = new WebSocket(url);
 
@@ -301,7 +301,7 @@ export class PriceFeed {
       }
       this.log.info(
         { connections: this.chainlinkConnections },
-        "Feed Chainlink ligado",
+        "Chainlink feed connected",
       );
       const msg = JSON.stringify({
         action: "subscribe",
@@ -341,7 +341,7 @@ export class PriceFeed {
         const ts = raw.payload.timestamp ?? Date.now();
         this.recordChainlinkTick(ts, price);
       } catch {
-        // ignora mensagens não-JSON (pong, etc.)
+        // ignore non-JSON messages (pong, etc.)
       }
     });
 
@@ -349,10 +349,10 @@ export class PriceFeed {
       if (this.running) this.chainlinkDisconnects++;
       this.log.warn(
         { disconnects: this.chainlinkDisconnects },
-        "Feed Chainlink desligado, a reconectar...",
+        "Chainlink feed disconnected, reconnecting...",
       );
       if (this.binanceFallbackEnabled()) {
-        this.log.info("A usar Binance como fallback de preço current");
+        this.log.info("Using Binance as the current price fallback");
       }
       this.scheduleReconnect(() => this.connectChainlink());
     });
@@ -361,13 +361,13 @@ export class PriceFeed {
       if (this.running) this.chainlinkErrors++;
       this.log.warn(
         { errors: this.chainlinkErrors },
-        "Erro no feed Chainlink",
+        "Chainlink feed error",
       );
     });
   }
 
   private startBinanceBackupPoll(): void {
-    this.log.info("Poll Binance backup activo (fallback Chainlink)");
+    this.log.info("Binance backup polling enabled (Chainlink fallback)");
     const poll = async () => {
       if (!this.running) return;
       try {
@@ -376,7 +376,7 @@ export class PriceFeed {
           this.recordBinanceTick(price);
         }
       } catch (err) {
-        this.log.warn({ err: err instanceof Error ? err.message : err }, "Erro no poll Binance backup");
+        this.log.warn({ err: err instanceof Error ? err.message : err }, "Binance backup polling error");
       }
       if (this.running) {
         this.binancePollTimer = setTimeout(poll, BINANCE_BACKUP_POLL_MS);
@@ -394,7 +394,7 @@ export class PriceFeed {
           this.recordBinanceTick(price);
         }
       } catch (err) {
-        this.log.warn({ err: err instanceof Error ? err.message : err }, "Erro no poll Binance");
+        this.log.warn({ err: err instanceof Error ? err.message : err }, "Binance polling error");
       }
       if (this.running) {
         this.binancePollTimer = setTimeout(poll, 1000);
@@ -442,7 +442,7 @@ export class PriceFeed {
     this.watchdogAwaitingRecovery = true;
     this.log.warn(
       { staleForSeconds, watchdogReconnects: this.chainlinkWatchdogReconnects },
-      "Watchdog detectou Chainlink stale — a forçar reconexão",
+      "Watchdog detected stale Chainlink — forcing reconnection",
     );
     this.emitAlert("stale", staleForSeconds);
 
@@ -465,7 +465,7 @@ export class PriceFeed {
     } catch (err) {
       this.log.warn(
         { err: err instanceof Error ? err.message : err },
-        "Falha ao emitir alerta sanitizado do feed",
+        "Failed to emit sanitized feed alert",
       );
     }
   }

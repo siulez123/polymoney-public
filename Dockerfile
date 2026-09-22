@@ -22,6 +22,6 @@ RUN npm ci --omit=dev
 COPY --from=builder /app/dist ./dist
 COPY config.yaml ./
 
-# Railway define PORT em runtime; localmente usa config.yaml (3000)
+# Railway sets PORT at runtime; local runs use config.yaml (3000)
 CMD ["node", "dist/index.js"]
 

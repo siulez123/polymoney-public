@@ -1,6 +1,6 @@
 // GitHub metadata only: no VPS credentials, data downloads or trading endpoints.
 const WORKFLOW = 'monitor-polymoney.yml';
-const TITLE = '[agent] Relatório de monitorização desatualizado';
+const TITLE = '[agent] Stale monitoring report';
 const PREFIXES = ['report', 'backtest-summary', 'prospective-summary', 'opportunity-summary'];
 const MAX_AGE = 120 * 60 * 1000;
 const COOLDOWN = 60 * 60 * 1000;
@@ -36,16 +36,16 @@ async function watchdog({github, context, core, now = Date.now()}) {
   if (fresh) {
     if (existing) {
       await github.rest.issues.createComment({...repo, issue_number: existing.number,
-        body: `Recolha completa recuperada: ${fresh.html_url}. A recuperação não valida estratégias.`});
+        body: `Complete collection recovered: ${fresh.html_url}. Recovery does not validate strategies.`});
       await github.rest.issues.update({...repo, issue_number: existing.number, state: 'closed'});
     }
-    core.info(`Monitorização recente e completa: ${fresh.id}`);
+    core.info(`Recent complete monitoring: ${fresh.id}`);
     return 'fresh';
   }
-  const body = 'Sem monitor concluído com sucesso e quatro artefactos nos últimos 120 minutos. '
-    + 'Estado atual não confirmado. O watchdog partilha o agendamento do GitHub Actions; '
-    + 'uma interrupção geral pode atrasar também este alerta.\n\n'
-    + `Verificação: ${context.serverUrl}/${repo.owner}/${repo.repo}/actions/runs/${context.runId}`;
+  const body = 'No successful monitor with four artifacts in the last 120 minutes. '
+    + 'Current state unconfirmed. The watchdog shares the GitHub Actions scheduler; '
+    + 'a general outage can also delay this alert.\n\n'
+    + `Check: ${context.serverUrl}/${repo.owner}/${repo.repo}/actions/runs/${context.runId}`;
   if (existing) await github.rest.issues.update({...repo, issue_number: existing.number, body});
   else await github.rest.issues.create({...repo, title: TITLE, body});
   // Never pile up work behind an active/queued monitor or retry more than hourly.
@@ -53,10 +53,10 @@ async function watchdog({github, context, core, now = Date.now()}) {
   const recentDispatch = runs.some(r => r.event === 'workflow_dispatch' && age(r, now) < COOLDOWN);
   if (!active && !recentDispatch) {
     await github.rest.actions.createWorkflowDispatch({...repo, workflow_id: WORKFLOW, ref: 'main'});
-    core.warning('Relatório atrasado; solicitada uma recolha sem alterar trading.');
+    core.warning('Report overdue; requested collection without changing trading.');
     return 'dispatched';
   }
-  core.warning('Relatório atrasado; recolha pendente ou intervalo entre tentativas ainda ativo.');
+  core.warning('Report overdue; collection pending or retry interval still active.');
   return 'waiting';
 }
 module.exports = {watchdog, complete, age};

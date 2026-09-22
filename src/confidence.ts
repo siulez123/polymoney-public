@@ -2,7 +2,7 @@ import type { AppConfig } from "./types.js";
 
 export interface ConfidenceInput {
   deltaBps?: number;
-  /** Preço de entrada (ask / limit) — opcional, para penalizar asks caros */
+  /** Entry price (ask / limit) — optional, to penalize expensive asks */
   price?: number;
 }
 
@@ -14,8 +14,8 @@ export interface ConfidenceResult {
 }
 
 /**
- * Confidence ∈ [confidence_at_min, 1] a partir de |delta| e preço.
- * Em min_delta → confidence_at_min; em full_delta_bps → 1.
+ * Confidence ∈ [confidence_at_min, 1] based on |delta| and price.
+ * At min_delta → confidence_at_min; at full_delta_bps → 1.
  */
 export function computeStakeConfidence(
   config: AppConfig,

@@ -77,7 +77,7 @@ async function waitUntilSecondsBeforeClose(
   if (remaining <= 0) {
     log.warn(
       { slug: market.slug, t: secondsBeforeClose },
-      "Instante T já passou — a tentar imediatamente",
+      "Entry time T has passed — trying immediately",
     );
     return;
   }
@@ -89,7 +89,7 @@ async function waitUntilSecondsBeforeClose(
       betAt: state.nextBetAt,
       waitSeconds: (remaining / 1000).toFixed(1),
     },
-    "À espera da janela de entrada",
+    "Waiting for the entry window",
   );
 
   if (notify) {
@@ -123,10 +123,10 @@ async function waitUntilWindowClose(
     remaining = msUntilWindowEnd(market);
   }
   await sleep(config.timing.post_close_delay_seconds * 1000);
-  log.debug({ slug: market.slug }, "Janela fechada");
+  log.debug({ slug: market.slug }, "Window closed");
 }
 
-/** true = já passou este T e também o T da janela seguinte → saltar */
+/** true = this T and the next entry window T have passed → skip */
 function shouldSkipPastWindow(
   market: DiscoveredMarket,
   window: EntryWindow,
@@ -211,7 +211,7 @@ async function runEntryWindows(
   for (let i = 0; i < windows.length; i++) {
     if (signal.aborted || !state.tradingActive) break;
     if (msUntilBetDeadline(market, config) <= 0) {
-      log.info({ slug: market.slug }, "Deadline de aposta atingido — a parar tentativas");
+      log.info({ slug: market.slug }, "Bet deadline reached — stopping attempts");
       break;
     }
 
@@ -221,7 +221,7 @@ async function runEntryWindows(
     if (shouldSkipPastWindow(market, window, next)) {
       log.debug(
         { t: window.seconds_before_close, nextT: next?.seconds_before_close },
-        "Janela de entrada já ultrapassada — a saltar",
+        "Entry window has passed — skipping",
       );
       continue;
     }
@@ -233,7 +233,7 @@ async function runEntryWindows(
       state,
       telegram,
       log,
-      false, // notificação já foi no idle até ao primeiro T
+      false, // notification already sent while idling until the first T
     );
 
     if (signal.aborted || !state.tradingActive) break;
@@ -255,7 +255,7 @@ async function runEntryWindows(
         windowIndex: i + 1,
         windowCount: windows.length,
       },
-      "Tentativa de entrada",
+      "Entry attempt",
     );
 
     let result = await executeBet(
@@ -271,7 +271,7 @@ async function runEntryWindows(
     );
     let attempts = 1;
 
-    // Retries de liquidez só até ao próximo T (ou deadline)
+    // Retry liquidity only until the next T (or deadline)
     while (isBetRetryable(result)) {
       const untilNext = next
         ? msUntilSecondsBeforeClose(market, next.seconds_before_close)
@@ -285,7 +285,7 @@ async function runEntryWindows(
           error: result.error,
           remainingMs: untilNext,
         },
-        "Retry por liquidez",
+        "Liquidity retry",
       );
       await sleep(Math.min(config.timing.bet_retry_interval_ms, untilNext));
       result = await executeBet(
@@ -305,7 +305,7 @@ async function runEntryWindows(
     if (attempts > 1) {
       log.info(
         { attempts, success: result.success, entryT: window.seconds_before_close },
-        "Retries desta janela concluídos",
+        "Retries for this window completed",
       );
     }
 
@@ -316,19 +316,19 @@ async function runEntryWindows(
     state.pnl = pnlTracker.getSummary();
 
     if (isFilledBet(result)) {
-      log.info({ entryT: window.seconds_before_close }, "Fill nesta janela — sem mais tentativas");
+      log.info({ entryT: window.seconds_before_close }, "Fill in this window — no further attempts");
       return result;
     }
 
     if (result.skipped) {
       log.info(
         { reason: result.strategyReason, entryT: window.seconds_before_close },
-        "Skip nesta janela — a tentar próximo T",
+        "Skipped this window — trying the next T",
       );
       continue;
     }
 
-    // Unfilled ou falha: tentar o próximo T (FAK não deixa resting)
+    // Unfilled or failed: try the next T (FAK leaves no resting order)
     log.info(
       {
         entryT: window.seconds_before_close,
@@ -336,7 +336,7 @@ async function runEntryWindows(
         submitted: result.submitted,
         error: result.error,
       },
-      "Sem fill nesta janela — a tentar próximo T",
+      "No fill in this window — trying the next T",
     );
   }
 
@@ -351,7 +351,7 @@ async function runEntryWindows(
     price: 0,
     size: 0,
     skipped: true,
-    strategyReason: "nenhuma janela de entrada disponível",
+    strategyReason: "no entry window available",
     status: "skipped",
     timestamp: new Date().toISOString(),
   };
@@ -408,15 +408,15 @@ export async function runBotLoop(
         pnl: record.pnl,
         risk: riskGuard.getStatus(),
       },
-      "Trading pausado por circuit breaker",
+      "Trading paused by circuit breaker",
     );
     telegram.notify(
-      `🛑 <b>Trading pausado</b>\n${reason}\n`
-      + `P&L aposta: ${record.pnl?.toFixed(2) ?? "?"} · Retoma no dashboard (Play).`,
+      `🛑 <b>Trading paused</b>\n${reason}\n`
+      + `Bet P&L: ${record.pnl?.toFixed(2) ?? "?"} · Resume in the dashboard (Play).`,
     );
     void webPush?.notifySystem(
-      "Polymoney pausado",
-      `${reason} · P&L aposta: ${record.pnl?.toFixed(2) ?? "?"} USD. Abre o dashboard para retomar.`,
+      "Polymoney paused",
+      `${reason} · Bet P&L: ${record.pnl?.toFixed(2) ?? "?"} USD. Open the dashboard to resume.`,
       `risk-${record.id}-${record.resolvedAt ?? "resolved"}`,
     );
   };
@@ -443,7 +443,7 @@ export async function runBotLoop(
       maxConsecutiveLosses: config.safety.max_consecutive_losses,
       maxDailyLossUsd: config.safety.max_daily_loss_usd,
     },
-    "Bot iniciado",
+    "Bot started",
   );
 
   telegram.notifyStarted();
@@ -461,7 +461,7 @@ export async function runBotLoop(
       if (!market) {
         const nextWindow = currentWindowStart(config) + config.market.window_seconds;
         const nextSlug = slugForWindow(config, nextWindow);
-        log.info({ nextSlug }, "Mercado atual indisponível, à espera do próximo");
+        log.info({ nextSlug }, "Current market unavailable, waiting for the next one");
         market = await waitForMarket(config, log, nextWindow);
       }
 
@@ -470,7 +470,7 @@ export async function runBotLoop(
 
       if (timeToEnd <= 0 || timeToDeadline <= 0) {
         const nextWindow = market.windowStartUnix + config.market.window_seconds;
-        log.info({ nextWindow }, "Janela atual já terminou / deadline passou, avançando");
+        log.info({ nextWindow }, "Current window ended / deadline passed, advancing");
         market = await waitForMarket(config, log, nextWindow);
       }
 
@@ -503,14 +503,14 @@ export async function runBotLoop(
           recordedLiquidityTriggers.add(key);
           log.info(
             { slug: market.slug, entryT: window.seconds_before_close, observedAt },
-            "Gatilho de liquidez CLOB capturado em shadow",
+            "CLOB liquidity trigger captured in shadow",
           );
         } finally {
           liquidityTriggersInFlight.delete(key);
         }
       });
 
-      // Acordar no primeiro T shadow, mantendo a notificação apontada ao primeiro T live.
+      // Wake at the first shadow T, keeping the notification pointed at the first live T.
       state.status = state.tradingActive ? "waiting" : "paused";
       state.currentSlug = market.slug;
       const firstT = earliestObservationSeconds(config);
@@ -526,7 +526,7 @@ export async function runBotLoop(
             liveEntryT: firstLiveT,
             waitSeconds: (untilFirst / 1000).toFixed(1),
           },
-          "À espera da primeira observação shadow",
+          "Waiting for the first shadow observation",
         );
         telegram.notifyMarket(
           market,
@@ -564,7 +564,7 @@ export async function runBotLoop(
         if (signal.aborted) return;
 
         if (!state.tradingActive) {
-          log.info({ slug: market.slug }, "Trading pausado — aposta ignorada");
+          log.info({ slug: market.slug }, "Trading paused — bet skipped");
           state.status = "paused";
           await waitUntilWindowClose(market, config, log);
           return;
@@ -578,7 +578,7 @@ export async function runBotLoop(
           state.totalUsdSpent = stats.totalUsdSpent;
           log.info(
             { utcDay: statsDay, betsPlaced: stats.betsPlaced, totalUsdSpent: stats.totalUsdSpent },
-            "Contadores diários UTC reiniciados",
+            "UTC daily counters reset",
           );
         }
 
@@ -602,7 +602,7 @@ export async function runBotLoop(
         state.pnl = pnlTracker.getSummary();
 
         if (result.skipped) {
-          log.info({ reason: result.strategyReason }, "Aposta ignorada pela estratégia (todas as janelas)");
+          log.info({ reason: result.strategyReason }, "Bet skipped by strategy (all windows)");
           telegram.notifySkipped(result);
           state.status = "done";
         } else if (isFilledBet(result)) {
@@ -646,13 +646,13 @@ export async function runBotLoop(
       const message = err instanceof Error ? err.message : String(err);
       state.status = "error";
       state.lastError = message;
-      log.error({ err: message }, "Erro no loop do bot");
+      log.error({ err: message }, "Bot loop error");
       telegram.notifyError(message);
       await sleep(5000);
     }
   }
 
   liquidityStream.stop();
-  log.info("Bot parado");
+  log.info("Bot stopped");
 }
 

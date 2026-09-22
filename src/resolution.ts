@@ -73,7 +73,7 @@ export async function resolveFromChainlink(
   }
 
   if (openPrice === null || closePrice === null) {
-    log.debug({ openPrice, closePrice }, "Chainlink resolution: preços em falta");
+    log.debug({ openPrice, closePrice }, "Chainlink resolution: missing prices");
     return null;
   }
 
@@ -83,7 +83,7 @@ export async function resolveFromChainlink(
   return { winner, source: "chainlink", openPrice, closePrice };
 }
 
-/** Espera apenas pela resolução oficial Gamma (nunca Chainlink local). */
+/** Wait only for official Gamma resolution (never local Chainlink). */
 export async function waitForResolution(
   config: AppConfig,
   slug: string,
@@ -105,11 +105,11 @@ export async function waitForResolution(
     const gamma = await resolveFromGamma(config, slug);
     if (gamma) return gamma;
 
-    log.debug({ slug }, "Resolução Gamma pendente, a tentar de novo...");
+    log.debug({ slug }, "Gamma resolution pending, retrying...");
     await sleep(resolution_poll_ms);
   }
 
-  throw new Error(`Gamma ainda não resolveu ${slug} após ${resolution_max_wait_seconds}s`);
+  throw new Error(`Gamma has not resolved ${slug} after ${resolution_max_wait_seconds}s`);
 }
 
 function sleep(ms: number): Promise<void> {

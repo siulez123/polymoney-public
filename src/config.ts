@@ -44,7 +44,7 @@ export const configSchema = z.object({
         if (seen.has(window.seconds_before_close)) {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
-            message: "shadow_liquidity_windows devem ter seconds_before_close distintos",
+            message: "shadow_liquidity_windows must have distinct seconds_before_close values",
           });
         }
         seen.add(window.seconds_before_close);
@@ -55,7 +55,7 @@ export const configSchema = z.object({
       if (t.bet_min_seconds_before_close >= t.bet_seconds_before_close) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: "bet_min_seconds_before_close deve ser menor que bet_seconds_before_close",
+          message: "bet_min_seconds_before_close must be less than bet_seconds_before_close",
         });
       }
       return;
@@ -66,13 +66,13 @@ export const configSchema = z.object({
       if (w.seconds_before_close <= t.bet_min_seconds_before_close) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: `entry_windows[${i}].seconds_before_close deve ser > bet_min_seconds_before_close`,
+          message: `entry_windows[${i}].seconds_before_close must be > bet_min_seconds_before_close`,
         });
       }
       if (i > 0 && w.seconds_before_close >= sorted[i - 1]!.seconds_before_close) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: "entry_windows devem ter seconds_before_close distintos",
+          message: "entry_windows must have distinct seconds_before_close values",
         });
       }
     }
@@ -152,15 +152,15 @@ export const configSchema = z.object({
     max_spread: z.number().min(0).max(1),
     require_liquidity: z.boolean(),
     allow_limit_without_ask: z.boolean(),
-    /** Limitar o tamanho da ordem à liquidez (asks) ≤ max_price */
+    /** Limit order size to liquidity (asks) ≤ max_price */
     size_to_depth: z.boolean().default(true),
-    /** Fração do depth utilizável (0–1), ex. 0.9 = usar no máx. 90% do book */
+    /** Fraction of usable depth (0–1), e.g. 0.9 = use at most 90% of the book */
     size_to_depth_buffer: z.number().min(0.1).max(1).default(0.9),
-    /** 0 = desligado. Pausa após N perdas consecutivas. */
+    /** 0 = disabled. Pause after N consecutive losses. */
     max_consecutive_losses: z.number().int().min(0).max(20).default(2),
-    /** 0 = desligado. Pausa se P&L do dia UTC cair abaixo de -este USD. */
+    /** 0 = disabled. Pause if UTC daily P&L falls below this negative USD amount. */
     max_daily_loss_usd: z.number().min(0).default(80),
-    /** Pausa quando o P&L das últimas operações resolvidas ultrapassa o limite negativo. */
+    /** Pause when P&L from the most recently resolved trades breaches the loss limit. */
     rolling_pnl_guard: z.object({
       enabled: z.boolean().default(true),
       window_size: z.number().int().min(2).max(200).default(10),
@@ -212,7 +212,7 @@ export function loadConfig(configPath?: string): AppConfig {
   const parsed = parseYaml(raw);
   const config = configSchema.parse(parsed) as AppConfig;
 
-  // Railway (e outros PaaS) injetam PORT — o healthcheck usa essa porta
+  // Railway (and other PaaS providers) inject PORT — health checks use that port
   if (process.env.PORT) {
     config.server.port = Number(process.env.PORT);
   }
@@ -220,7 +220,7 @@ export function loadConfig(configPath?: string): AppConfig {
   return config;
 }
 
-/** Campos que tipicamente exigem restart do processo para aplicar por completo. */
+/** Fields that typically require a process restart to apply fully. */
 export const CONFIG_RESTART_HINTS = [
   "trading.mode",
   "trading.signature_type",
@@ -252,8 +252,8 @@ function deepAssign(target: Record<string, unknown>, source: Record<string, unkn
 }
 
 /**
- * Valida um payload completo de config, grava no YAML e aplica in-place
- * no objecto em memória (hot-reload para a maioria dos campos).
+ * Validate a complete config payload, save to YAML and apply in place
+ * in the in-memory object (hot reload for most fields).
  */
 export function updateConfigInPlace(
   liveConfig: AppConfig,
@@ -263,7 +263,7 @@ export function updateConfigInPlace(
   const parsed = configSchema.parse(incoming) as AppConfig;
   const diskPort = parsed.server.port;
 
-  // PORT do PaaS tem prioridade em runtime
+  // PaaS PORT takes precedence at runtime
   if (process.env.PORT) {
     parsed.server.port = Number(process.env.PORT);
   }
@@ -293,7 +293,7 @@ export function saveConfigToDisk(config: AppConfig, configPath?: string): void {
   const yaml = stringifyYaml(config, { lineWidth: 0, defaultStringType: "PLAIN" });
   writeFileSync(
     path,
-    `# Polymoney — gerado/atualizado via UI\n# ${new Date().toISOString()}\n\n${yaml}`,
+    `# Polymoney — generated/updated via UI\n# ${new Date().toISOString()}\n\n${yaml}`,
     "utf8",
   );
 }
@@ -303,7 +303,7 @@ export function loadSecrets(): EnvSecrets {
   const depositWalletAddress = process.env.DEPOSIT_WALLET_ADDRESS?.trim();
 
   if (!privateKey && process.env.TRADING_MODE !== "paper") {
-    // Em paper mode não exigimos chaves
+    // Paper mode does not require keys
   }
 
   return {
@@ -321,17 +321,17 @@ export function validateSecretsForLive(config: AppConfig, secrets: EnvSecrets): 
   if (config.trading.mode !== "live") return;
 
   if (process.env.LIVE_TRADING_CONFIRMED !== "true") {
-    throw new Error("Modo live bloqueado: define LIVE_TRADING_CONFIRMED=true após validar a estratégia em paper");
+    throw new Error("Live mode blocked: set LIVE_TRADING_CONFIRMED=true after validating the strategy in paper mode");
   }
 
   if (!secrets.privateKey) {
-    throw new Error("PRIVATE_KEY é obrigatório em modo live");
+    throw new Error("PRIVATE_KEY is required in live mode");
   }
   if (!secrets.depositWalletAddress) {
-    throw new Error("DEPOSIT_WALLET_ADDRESS é obrigatório em modo live");
+    throw new Error("DEPOSIT_WALLET_ADDRESS is required in live mode");
   }
   if (!secrets.privateKey.startsWith("0x")) {
-    throw new Error("PRIVATE_KEY deve começar com 0x");
+    throw new Error("PRIVATE_KEY must start with 0x");
   }
 }
 

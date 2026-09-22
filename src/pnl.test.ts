@@ -33,7 +33,7 @@ test("captures entry-window metadata without raw order details", () => {
     tokenId: "token",
     price: 0.82,
     size: 5,
-    error: "Sem liquidez utilizável ≤ max_price 0.82",
+    error: "No usable liquidity ≤ max_price 0.82",
     strategyReason: "T-90: momentum: 12.5 bps",
     timestamp: "2026-08-27T00:00:00Z",
     executionCorrelation: {
@@ -81,7 +81,7 @@ test("captures entry-window metadata without raw order details", () => {
   assert.equal(attempt.outcome, "failed");
   assert.equal(attempt.side, "up");
   assert.equal(attempt.price, 0.82);
-  assert.equal(attempt.error, "Sem liquidez utilizável ≤ max_price 0.82");
+  assert.equal(attempt.error, "No usable liquidity ≤ max_price 0.82");
   assert.equal("tokenId" in attempt, false);
   assert.equal(attempt.executionCorrelation?.reasonCode, "other_clob_rejection");
   assert.equal(attempt.shadowStrategies?.[0]?.mode, "cheapest");

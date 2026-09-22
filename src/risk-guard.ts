@@ -71,12 +71,12 @@ export class RiskGuard {
 
     const maxLosses = config.safety.max_consecutive_losses;
     if (maxLosses > 0 && this.consecutiveLosses >= maxLosses) {
-      this.pausedReason = `${this.consecutiveLosses} perdas consecutivas (limite ${maxLosses})`;
+      this.pausedReason = `${this.consecutiveLosses} consecutive losses (limit ${maxLosses})`;
     }
 
     const maxDaily = config.safety.max_daily_loss_usd;
     if (!this.pausedReason && maxDaily > 0 && this.dailyPnlUsd <= -maxDaily) {
-      this.pausedReason = `perda diária ${this.dailyPnlUsd.toFixed(2)} USD (limite -${maxDaily})`;
+      this.pausedReason = `daily loss ${this.dailyPnlUsd.toFixed(2)} USD (limit -${maxDaily})`;
     }
 
     const rollingPnl = sum(this.recentResolvedPnls);
@@ -86,7 +86,7 @@ export class RiskGuard {
       && this.recentResolvedPnls.length >= rollingConfig.min_resolved_bets
       && rollingPnl <= -rollingConfig.max_loss_usd
     ) {
-      this.pausedReason = `P&L móvel ${rollingPnl.toFixed(2)} USD em ${this.recentResolvedPnls.length} operações (limite -${rollingConfig.max_loss_usd})`;
+      this.pausedReason = `Rolling P&L ${rollingPnl.toFixed(2)} USD over ${this.recentResolvedPnls.length} trades (limit -${rollingConfig.max_loss_usd})`;
     }
 
     this.save();
@@ -115,7 +115,7 @@ export class RiskGuard {
       this.seenResolutionKeys = new Set(state.seenResolutionKeys ?? []);
       this.rollDay(new Date());
     } catch {
-      this.pausedReason = "estado de risco inválido; revisão manual necessária";
+      this.pausedReason = "invalid risk state; manual review required";
     }
   }
 

@@ -1,149 +1,146 @@
 # Polymoney
 
-Software de investigação, sem rentabilidade demonstrada. O motor BTC de 5 minutos está implementado; desporto, meteorologia e cestos de resultados são propostas de investigação, ainda não ativadas. Começa em modo paper, sem credenciais de carteira.
+Research software, not a demonstrated source of income. The BTC 5-minute engine is implemented. Start in paper mode without wallet credentials.
 
-- [Novas estratégias e mercados](docs/research-roadmap.md)
-- [Versão pública](docs/public-release.md) · [Segurança](SECURITY.md)
+- [Public source release](docs/public-release.md) · [Security](SECURITY.md)
 
-Bot automatizado para o mercado **Polymarket Bitcoin Up/Down 5 minutos**. Descobre o mercado ativo, espera o timing configurado e coloca a aposta (paper ou live) via SecureClient (deposit wallet).
+Automated bot for the **Polymarket Bitcoin Up/Down 5-minute** market. It discovers the active market, waits for the configured timing window, and places paper or live orders via SecureClient (deposit wallet).
 
-[English README](README.en.md)
+## How it works
 
-## Como funciona
+1. Builds the current market slug: `btc-updown-5m-{unix_timestamp}` (300s windows)
+2. Fetches token IDs and close time from the [Gamma API](https://gamma-api.polymarket.com)
+3. Waits until `bet_seconds_before_close` seconds before window end
+4. Picks a side with the configured **strategy** (e.g. Chainlink momentum)
+5. Sizes the stake (`fixed` / `paroli` / `all_in`) and applies safety checks (depth, max price, circuit breaker)
+6. Places a market order if there is an ask ≤ `max_price`; otherwise a resting limit (when `allow_limit_without_ask` is on)
+7. Resolves P&L after close (Gamma / Chainlink) and updates staking state
 
-1. Calcula o slug do mercado atual: `btc-updown-5m-{unix_timestamp}` (janelas de 300s)
-2. Consulta a [Gamma API](https://gamma-api.polymarket.com) para token IDs e fecho
-3. Espera até `bet_seconds_before_close` segundos antes do fim da janela
-4. Decide o lado com a **estratégia** (ex. momentum Chainlink)
-5. Dimensiona o stake (`fixed` / `paroli` / `all_in`), aplica safety (depth, max price, circuit breaker)
-6. Coloca market order se houver ask ≤ `max_price`; senão limit resting (se `allow_limit_without_ask`)
-7. Resolve P&L após o fecho (Gamma / Chainlink) e actualiza staking
+## Strategies
 
-## Estratégias
+| Mode | Description |
+|------|-------------|
+| `momentum` | Current BTC vs window open (Chainlink — same resolution source). Up if above, Down if below |
+| `book_leader` | Side with the higher book mid |
+| `cheapest` | Cheaper outcome |
+| `fixed` | Fixed side (`fixed_side`) |
 
-| Modo | Descrição |
-|------|-----------|
-| `momentum` | BTC atual vs open da janela (Chainlink — fonte de resolução). Up se acima, Down se abaixo |
-| `book_leader` | Lado com mid mais alto no book |
-| `cheapest` | Outcome mais barato |
-| `fixed` | Lado fixo (`fixed_side`) |
+With `on_neutral: skip`, the bot skips when the signal is weak (e.g. `|delta| < min_delta_bps`).
 
-Com `on_neutral: skip`, não aposta se o sinal for fraco (ex. `|delta| < min_delta_bps`).
+## Staking (order size)
 
-## Staking (tamanho da aposta)
+| Mode | Description |
+|------|-------------|
+| `fixed` | Fixed share size (`bet.size_shares`) |
+| `paroli` | `base_usd` + series profits (reset on loss) |
+| `all_in` | Nearly 100% of USDC balance (~1.5% reserved for CLOB fee estimate) |
 
-| Modo | Descrição |
-|------|-----------|
-| `fixed` | Tamanho fixo em shares (`bet.size_shares`) |
-| `paroli` | `base_usd` + ganhos da série (reset à perda) |
-| `all_in` | Quase 100% do saldo USDC (reserva ~1.5% para fee CLOB) |
+Related options: `recovery_cap`, `confidence` (scales stake by delta/price), `max_stake_usd`, circuit breaker (`max_consecutive_losses`, `max_daily_loss_usd`).
 
-Opções relacionadas: `recovery_cap`, `confidence` (escala stake pelo delta/preço), `max_stake_usd`, circuit breaker (`max_consecutive_losses`, `max_daily_loss_usd`).
-
-## Requisitos
+## Requirements
 
 - Node.js ≥ 24
-- Conta Polymarket com deposit wallet (signature type 3) e USDC — só em live
-- Chave privada do signer — apenas em live
+- Polymarket deposit wallet (signature type 3) + USDC — live only
+- Signer private key — live only
 
-## Setup local
+## Local setup
 
 ```bash
 cp .env.example .env
 cp config.example.yaml config.local.yaml
 export CONFIG_PATH=config.local.yaml
-# Edita .env: PRIVATE_KEY, DEPOSIT_WALLET_ADDRESS (live)
-# Edita config.local.yaml; mantém trading.mode: paper
+# Edit .env: PRIVATE_KEY, DEPOSIT_WALLET_ADDRESS (live)
+# Edit config.local.yaml; keep trading.mode: paper
 
 npm ci
 npm run dev                 # hot reload
-# ou
+# or
 npm run build && npm start
 ```
 
-## Configuração
+## Configuration
 
-Não-secreto → **`config.yaml`**. Secrets → **`.env`** (ou env vars no host).
+Non-secrets → **`config.yaml`**. Secrets → **`.env`** (or host env vars).
 
-### config.yaml — principais variáveis
+### config.yaml — main knobs
 
-| Secção | Variável | Descrição |
-|--------|----------|-----------|
-| `timing` | `bet_seconds_before_close` | Quando tentar apostar (ex. 60) |
+| Section | Key | Description |
+|---------|-----|-------------|
+| `timing` | `bet_seconds_before_close` | When to attempt the bet (e.g. 60) |
 | `strategy` | `mode` | `momentum`, `book_leader`, `cheapest`, `fixed` |
-| `strategy` | `min_delta_bps` | Delta mínimo BTC (momentum) |
+| `strategy` | `min_delta_bps` | Minimum BTC delta (momentum) |
 | `strategy` | `on_neutral` | `skip` / `up` / `down` |
-| `bet` | `max_price` | Preço máximo por share |
-| `bet` | `use_market_order` | `true` = taker se houver ask utilizável |
+| `bet` | `max_price` | Max price per share |
+| `bet` | `use_market_order` | `true` = taker when a usable ask exists |
 | `staking` | `mode` | `fixed`, `paroli`, `all_in` |
 | `staking` | `base_usd` | Base (paroli) / fallback (all_in) |
-| `trading` | `mode` | `paper` ou `live` |
+| `trading` | `mode` | `paper` or `live` |
 | `trading` | `signature_type` | `3` = deposit wallet |
-| `safety` | `size_to_depth` | Limitar stake à liquidez ≤ max_price |
-| `safety` | `allow_limit_without_ask` | Limit resting se não houver ask ≤ max_price |
-| `safety` | `max_consecutive_losses` | Pausa após N perdas seguidas (0 = off) |
-| `safety` | `max_daily_loss_usd` | Pausa se P&L do dia UTC ≤ −este valor |
-| `pnl` | `enabled` | Tracking de P&L |
-| `telegram` | `enabled` | Notificações + comandos |
+| `safety` | `size_to_depth` | Cap size to ask depth ≤ max_price |
+| `safety` | `allow_limit_without_ask` | Resting limit if no ask ≤ max_price |
+| `safety` | `max_consecutive_losses` | Pause after N losses in a row (0 = off) |
+| `safety` | `max_daily_loss_usd` | Pause if UTC day P&L ≤ −this amount |
+| `pnl` | `enabled` | P&L tracking |
+| `telegram` | `enabled` | Notifications + commands |
 
 ### .env — secrets
 
-| Variável | Live | Descrição |
-|----------|------|-----------|
-| `PRIVATE_KEY` | Sim | Signer (`0x…`) |
-| `DEPOSIT_WALLET_ADDRESS` | Sim | Deposit wallet (funder) |
-| `TELEGRAM_BOT_TOKEN` | Se telegram on | Token @BotFather |
-| `TELEGRAM_CHAT_ID` | Se telegram on | Chat ID |
-| `DASHBOARD_TOKEN` | Não | Protege `/pnl` e API (`?token=` ou cookie) |
-| `CONFIG_PATH` | Não | Caminho alternativo ao config.yaml |
+| Variable | Live | Description |
+|----------|------|-------------|
+| `PRIVATE_KEY` | Yes | Signer (`0x…`) |
+| `DEPOSIT_WALLET_ADDRESS` | Yes | Deposit wallet (funder) |
+| `TELEGRAM_BOT_TOKEN` | If telegram on | BotFather token |
+| `TELEGRAM_CHAT_ID` | If telegram on | Chat ID |
+| `DASHBOARD_TOKEN` | No | Protects `/pnl` and API (`?token=` or cookie) |
+| `CONFIG_PATH` | No | Alternate path to config.yaml |
 
 ## Telegram
 
-1. Cria bot com [@BotFather](https://t.me/BotFather)
-2. Obtém chat ID ([@userinfobot](https://t.me/userinfobot) ou `getUpdates`)
-3. No `.env`: `TELEGRAM_BOT_TOKEN` + `TELEGRAM_CHAT_ID`
-4. `telegram.enabled: true` no config
+1. Create a bot with [@BotFather](https://t.me/BotFather)
+2. Get your chat ID ([@userinfobot](https://t.me/userinfobot) or `getUpdates`)
+3. Set `TELEGRAM_BOT_TOKEN` + `TELEGRAM_CHAT_ID` in `.env`
+4. Set `telegram.enabled: true` in config
 
-Notificações: aposta, P&L (configurável). Comandos: `/status`, `/saldo`, `/ultimas`, `/help`.
+Notifications: bet, P&L (configurable). Commands: `/status`, `/balance`, `/recent`, `/help`.
 
 ## Dashboard
 
 ```
 http://localhost:3000/pnl
-# com token: http://localhost:3000/pnl?token=TEU_TOKEN
+# with token: http://localhost:3000/pnl?token=YOUR_TOKEN
 ```
 
-SSE em tempo real: P&L, win rate, saldo, estado do bot, histórico.  
+Live SSE: P&L, win rate, balance, bot state, trade history.  
 API: `GET /api/status` · Stream: `GET /api/stream` · Health: `GET /health`
 
-## Modo paper
+## Paper mode
 
-`trading.mode: paper` — simula sem enviar ordens. Bom para timing e descoberta.
+`trading.mode: paper` — simulates without sending orders. Useful for timing and discovery.
 
 ## Deposit wallet (live)
 
-Contas novas usam signature type **3**. Live usa `@polymarket/client` (SecureClient). O `clob-client-v2` sozinho falha em deposit wallets ([bug #65](https://github.com/Polymarket/clob-client-v2/issues/65)).
+New accounts use signature type **3**. Live trading goes through `@polymarket/client` (SecureClient). Plain `clob-client-v2` fails on deposit wallets ([bug #65](https://github.com/Polymarket/clob-client-v2/issues/65)).
 
-Diagnóstico:
+Diagnostics:
 
 ```bash
-bash scripts/run-deposit-wallet-test.sh          # auth + saldo
-bash scripts/run-deposit-wallet-test.sh --live   # + ordem de teste
+bash scripts/run-deposit-wallet-test.sh          # auth + balance
+bash scripts/run-deposit-wallet-test.sh --live   # + test order
 ```
 
 ## Deploy
 
-- **Railway:** liga o repo; define env vars; `Dockerfile` + `railway.toml`; health em `:3000/health`
-- **VPS/systemd:** `npm run build && npm start` (ou unit `polymoney`)
+- **Railway:** connect the repo; set env vars; `Dockerfile` + `railway.toml`; health on `:3000/health`
+- **VPS/systemd:** `npm run build && npm start` (or a `polymoney` unit)
 
-## Aviso
+## Disclaimer
 
-Modo live usa dinheiro real. Sem garantia de lucro. Fees, latência, slippage e geoblock podem impedir fills. Usa por tua conta e risco.
+Live mode uses real money. No profit guarantee. Fees, latency, slippage, and geoblocking can prevent fills. Use at your own risk.
 
 ## Buy me a coffee
 
-Se este projeto te for útil, podes apoiar o desenvolvimento através do [Revolut — @josef020](https://revolut.me/josef020). O apoio é voluntário e não compra sinais de trading nem promessas de rentabilidade.
+If this project helps you, you can support its development via [Revolut — @josef020](https://revolut.me/josef020). Support is voluntary and does not purchase trading signals or promised returns.
 
-## Licença
+## Licensing
 
-Código público, ainda sem licença geral de reutilização. Consulta as [notas da versão](docs/public-release.md#licensing).
+Public source; no repository-wide reuse license has been granted. See [release notes](docs/public-release.md#licensing).

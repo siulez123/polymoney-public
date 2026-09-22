@@ -19,7 +19,7 @@ export interface AccountBalanceStatus {
 }
 
 const POLL_MS = 60_000;
-/** ~30 dias a 1 ponto/min, com margem */
+/** ~30 days at 1 point/min, with headroom */
 const MAX_POINTS = 50_000;
 const MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
 const DEFAULT_STORAGE = "./data/balance-history.json";
@@ -45,7 +45,7 @@ export class AccountBalanceTracker {
 
   start(config: AppConfig, secrets: EnvSecrets, log: Logger): void {
     if (!secrets.privateKey?.startsWith("0x") || !secrets.depositWalletAddress) {
-      log.info("Saldo Polymarket: sem credenciais — gráfico desativado");
+      log.info("Polymarket balance: no credentials — chart disabled");
       return;
     }
 
@@ -53,7 +53,7 @@ export class AccountBalanceTracker {
     this.timer = setInterval(() => void this.poll(config, secrets, log), POLL_MS);
     log.info(
       { intervalSec: POLL_MS / 1000, historyPoints: this.history.length, path: this.storagePath },
-      "A monitorizar saldo USDC da conta Polymarket",
+      "Monitoring Polymarket account USDC balance",
     );
   }
 
@@ -78,7 +78,7 @@ export class AccountBalanceTracker {
     return this.currentBalanceUsd;
   }
 
-  /** Refresh imediato do saldo CLOB (ex.: sizing all-in antes da ordem). */
+  /** Immediately refresh CLOB balance (e.g. all-in sizing before order submission). */
   async refreshNow(config: AppConfig, secrets: EnvSecrets, log: Logger): Promise<number | null> {
     const deadline = Date.now() + 5_000;
     while (this.polling && Date.now() < deadline) {
@@ -96,7 +96,7 @@ export class AccountBalanceTracker {
       const resp = await client.getBalanceAllowance({ asset_type: AssetType.COLLATERAL });
       const raw = Number.parseInt(resp.balance ?? "0", 10);
       if (!Number.isFinite(raw)) {
-        throw new Error("Resposta de saldo inválida");
+        throw new Error("Invalid balance response");
       }
       const balanceUsd = raw / 10 ** COLLATERAL_TOKEN_DECIMALS;
       const at = new Date().toISOString();
@@ -112,11 +112,11 @@ export class AccountBalanceTracker {
         this.save();
       }
 
-      log.debug({ balanceUsd: balanceUsd.toFixed(2) }, "Saldo Polymarket atualizado");
+      log.debug({ balanceUsd: balanceUsd.toFixed(2) }, "Polymarket balance updated");
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       this.lastError = message;
-      log.warn({ err: message }, "Falha ao obter saldo Polymarket");
+      log.warn({ err: message }, "Failed to fetch Polymarket balance");
     } finally {
       this.polling = false;
     }
@@ -155,7 +155,7 @@ export class AccountBalanceTracker {
       };
       writeFileSync(this.storagePath, JSON.stringify(payload));
     } catch {
-      // não bloquear o bot se o disco falhar
+      // do not block the bot if disk access fails
     }
   }
 }

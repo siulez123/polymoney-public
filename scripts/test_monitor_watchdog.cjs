@@ -50,7 +50,7 @@ test('old failed dispatch can retry; foreign branch cannot certify health', asyn
   assert.equal((await execute([{...run, head_branch: 'feature'}])).result, 'dispatched');
 });
 test('recovery comments and closes only dedicated incident', async () => {
-  const incident = {number: 77, title: '[agent] Relatório de monitorização desatualizado'};
+  const incident = {number: 77, title: '[agent] Stale monitoring report'};
   const {calls} = await execute([run], artifacts, [incident]);
   assert.deepEqual(calls.map(c => c.name), ['comment', 'update']);
   assert.equal(calls[1].args.state, 'closed');

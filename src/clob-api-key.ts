@@ -45,7 +45,7 @@ async function signTypedData(
   message: Record<string, unknown>,
 ): Promise<`0x${string}`> {
   const account = signer.account;
-  if (!account) throw new Error("wallet client sem account");
+  if (!account) throw new Error("wallet client has no account");
   return signer.signTypedData({
     account,
     domain,
@@ -135,7 +135,7 @@ async function requestApiKey(
   return { ok: response.ok, status: response.status, body };
 }
 
-/** Tenta derivar API key L2 ligada à deposit wallet (POLY_1271). Falha se o CLOB ainda não suportar. */
+/** Try deriving an L2 API key bound to the deposit wallet (POLY_1271). Fails if not yet supported by CLOB. */
 export async function deriveDepositWalletApiKey(
   host: string,
   chainId: number,
@@ -176,7 +176,7 @@ export async function deriveDepositWalletApiKey(
 }
 
 export const DEPOSIT_WALLET_AUTH_ERROR =
-  "Contas deposit wallet (signature_type=3) não conseguem obter API key CLOB válida via SDK — " +
+  "Deposit wallet accounts (signature_type=3) cannot obtain a valid CLOB API key via SDK — " +
   "bug Polymarket: https://github.com/Polymarket/clob-client-v2/issues/65. " +
-  "Usa mode: paper até haver fix, ou aposta manual no site.";
+  "Use mode: paper until a fix is available, or trade manually on the website.";
 

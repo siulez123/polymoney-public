@@ -1,8 +1,8 @@
 /**
- * Testa variantes de signer/maker/signatureType para desbloquear deposit wallet.
- * Ordem GTC a 0.01 (não deve preencher). Cancela no fim se aceitar.
+ * Test signer/maker/signatureType variants for deposit wallet compatibility.
+ * GTC order at 0.01 (unlikely to fill). Cancel at the end if accepted.
  *
- * Uso: npx tsx scripts/test-signer-eoa-patch.ts
+ * Usage: npx tsx scripts/test-signer-eoa-patch.ts
  */
 import "dotenv/config";
 import {
@@ -48,7 +48,7 @@ async function postVariant(
         await client.cancelOrder({ orderID: id });
         console.log("cancelado:", id);
       } catch (e) {
-        console.log("cancel falhou:", e);
+        console.log("cancel failed:", e);
       }
     }
   } catch (e: unknown) {
@@ -81,7 +81,7 @@ async function main(): Promise<void> {
     `https://gamma-api.polymarket.com/events?slug=${slug}`,
   ).then((r) => r.json())) as { markets: { clobTokenIds: string }[] }[];
   const tokenId = JSON.parse(events[0].markets[0].clobTokenIds)[0] as string;
-  console.log("Mercado:", slug, "token:", tokenId.slice(0, 16) + "…");
+  console.log("Market:", slug, "token:", tokenId.slice(0, 16) + "…");
 
   const variants: Array<{ label: string; sigType: number }> = [
     { label: "A stock POLY_1271", sigType: SignatureTypeV2.POLY_1271 },

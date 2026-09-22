@@ -44,12 +44,12 @@ export class StakingManager {
     }
   }
 
-  /** Liga o saldo live (obrigatório para mode all_in). */
+  /** Attach the live balance (required for all_in mode). */
   setBalanceProvider(getBalanceUsd: () => number | null): void {
     this.getBalanceUsd = getBalanceUsd;
   }
 
-  /** Zera banca série + recovery pendente e persiste. */
+  /** Reset series bankroll and pending recovery, then persist. */
   resetBankroll(): void {
     this.seriesBankroll = 0;
     this.pendingRecoveryUsd = 0;
@@ -62,7 +62,7 @@ export class StakingManager {
         pendingRecoveryUsd: "0.00",
         nextStakeUsd: this.getNextStakeUsd().toFixed(2),
       },
-      "Banca staking zerada",
+      "Staking bankroll reset",
     );
   }
 
@@ -83,13 +83,13 @@ export class StakingManager {
     };
   }
 
-  /** Stake bruto (paroli/recovery) sem confidence — útil para UI. */
+  /** Gross stake (paroli/recovery) without confidence — useful for UI. */
   getNextStakeUsd(): number {
     return this.getRawStakeUsd();
   }
 
   /**
-   * Stake final em USD após confidence (paroli e recovery escalados).
+   * Final USD stake after confidence (paroli and recovery scaled).
    */
   getStakeUsdForSignal(input: ConfidenceInput = {}): {
     stakeUsd: number;
@@ -102,9 +102,9 @@ export class StakingManager {
     if (mode === "all_in") {
       const confidence = computeStakeConfidence(this.config, {
         ...input,
-        // all-in: sem redução por confidence
+        // all-in: no confidence reduction
       });
-      // Forçar 100% do saldo (confidence ignorada no sizing)
+      // Use 100% of balance (confidence ignored for sizing)
       return {
         stakeUsd: rawStakeUsd,
         rawStakeUsd,
@@ -172,14 +172,14 @@ export class StakingManager {
   onBetResolved(won: boolean, pnl: number): void {
     const changed = this.applyResolution(won, pnl);
     if (!changed) return;
-    this.saveAndLog(won, pnl, "Banca staking atualizada");
+    this.saveAndLog(won, pnl, "Staking bankroll updated");
   }
 
-  /** Corrige staking quando uma resolução anterior estava errada (ex.: Chainlink vs Gamma). */
+  /** Correct staking when a previous resolution was wrong (e.g. Chainlink vs Gamma). */
   correctBetResolution(oldWon: boolean, oldPnl: number, newWon: boolean, newPnl: number): void {
     this.reverseResolution(oldWon, oldPnl);
     this.applyResolution(newWon, newPnl);
-    this.saveAndLog(newWon, newPnl, "Banca staking corrigida após reconciliação Gamma");
+    this.saveAndLog(newWon, newPnl, "Staking bankroll corrected after Gamma reconciliation");
   }
 
   private reverseResolution(won: boolean, pnl: number): void {
@@ -202,7 +202,7 @@ export class StakingManager {
     const { mode, recovery_cap } = this.config.staking;
     let changed = false;
 
-    // all_in: stake = saldo live; não acumula banca série
+    // all_in: stake = live balance; no series bankroll accumulation
     if (mode === "paroli") {
       if (won && pnl > 0) {
         this.seriesBankroll += pnl * this.config.staking.reinvest_fraction;
@@ -262,12 +262,12 @@ export class StakingManager {
       if (bal === null || !Number.isFinite(bal) || bal <= 0) {
         this.log.warn(
           { base_usd },
-          "all_in: saldo indisponível — a usar base_usd",
+          "all_in: balance unavailable — using base_usd",
         );
         return base_usd;
       }
-      // CLOB exige order + fee estimate ≤ balance (ex.: fee ~0.9%).
-      // Reserva 1.5% para a fee; senão all-in a 100% falha com "not enough balance".
+      // CLOB requires order + estimated fee ≤ balance (e.g. fee ~0.9%).
+      // Reserve 1.5% for fees; otherwise 100% all-in fails with "not enough balance".
       const feeReserve = 0.015;
       const usable = bal / (1 + feeReserve);
       return Math.floor(usable * 100) / 100;
@@ -334,11 +334,11 @@ export class StakingManager {
           pendingRecoveryUsd: this.pendingRecoveryUsd.toFixed(2),
           path,
         },
-        "Banca staking carregada",
+        "Staking bankroll loaded",
       );
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      this.log.warn({ err: message, path }, "Falha ao carregar banca staking");
+      this.log.warn({ err: message, path }, "Failed to load staking bankroll");
     }
   }
 

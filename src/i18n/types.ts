@@ -1,12 +1,12 @@
-export type Locale = "pt" | "en" | "es";
+export type Locale = "en" | "es";
 
-export const LOCALES: Locale[] = ["pt", "en", "es"];
+export const LOCALES: Locale[] = ["en", "es"];
 
 export function parseLocale(raw?: string | null): Locale {
-  if (!raw) return "pt";
+  if (!raw) return "en";
   const s = raw.trim().toLowerCase().slice(0, 2);
-  if (s === "en" || s === "es" || s === "pt") return s;
-  return "pt";
+  if (s === "en" || s === "es") return s;
+  return "en";
 }
 
 export type Messages = {

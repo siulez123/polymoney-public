@@ -31,17 +31,17 @@ export interface AppConfig {
     post_close_delay_seconds: number;
     prepare_before_bet_seconds: number;
     /**
-     * Várias tentativas na mesma janela 5m, cada uma com o seu min_delta (e max_price opcional).
-     * Se vazio, usa bet_seconds_before_close + strategy.min_delta_bps (comportamento antigo).
+     * Multiple attempts in the same 5m window, each with its own min_delta (and optional max_price).
+     * If empty, use bet_seconds_before_close + strategy.min_delta_bps (legacy behavior).
      */
     entry_windows: Array<{
       seconds_before_close: number;
       min_delta_bps: number;
-      /** Override opcional de bet.max_price só neste T */
+      /** Optional bet.max_price override for this T only */
       max_price?: number;
     }>;
     /**
-     * Observações antecipadas exclusivamente shadow. Nunca autorizam envio de ordens.
+     * Early shadow-only observations. Never authorize order submission.
      */
     shadow_liquidity_windows: Array<{
       seconds_before_close: number;
@@ -60,34 +60,34 @@ export interface AppConfig {
     mode: "fixed" | "paroli" | "all_in";
     base_usd: number;
     max_stake_usd: number;
-    /** 0–1: fração do pnl reinvestida na banca_série após vitória (paroli) */
+    /** 0–1: fraction of P&L reinvested in series bankroll after a win (paroli) */
     reinvest_fraction: number;
     reset_on_loss: boolean;
     recovery_cap: {
       enabled: boolean;
       max_stake_usd: number;
-      /** Preço assumido no cálculo (0 = usa bet.max_price) */
+      /** Assumed price in calculation (0 = use bet.max_price) */
       assumed_price: number;
     };
-    /** Escala o stake (paroli + recovery) pela força do sinal */
+    /** Scale stake (paroli + recovery) by signal strength */
     confidence: {
       enabled: boolean;
-      /** Confidence quando |delta| = min_delta_bps */
+      /** Confidence when |delta| = min_delta_bps */
       confidence_at_min: number;
-      /** |delta| a partir do qual confidence delta = 1 */
+      /** |delta| at which delta confidence = 1 */
       full_delta_bps: number;
-      /** Se não há delta (outras estratégias) */
+      /** If no delta is available (other strategies) */
       default_when_no_delta: number;
-      /** Penalizar asks perto do max_price */
+      /** Penalize asks near max_price */
       price_penalty_enabled: boolean;
-      /** Multiplicador de confidence quando price = max_price */
+      /** Confidence multiplier when price = max_price */
       price_factor_at_max: number;
     };
     storage_path: string;
   };
   strategy: {
     mode: StrategyMode;
-    /** Estratégias adicionais avaliadas apenas em shadow; nunca enviam ordens. */
+    /** Additional strategies evaluated in shadow only; never submit orders. */
     shadow_modes: StrategyMode[];
     fixed_side: "up" | "down";
     min_delta_bps: number;
@@ -121,11 +121,11 @@ export interface AppConfig {
     allow_limit_without_ask: boolean;
     size_to_depth: boolean;
     size_to_depth_buffer: number;
-    /** 0 = off. Pausa trading após N perdas resolvidas seguidas. */
+    /** 0 = off. Pause trading after N consecutive resolved losses. */
     max_consecutive_losses: number;
-    /** 0 = off. Pausa trading se P&L do dia UTC ≤ -este valor. */
+    /** 0 = off. Pause trading if UTC daily P&L ≤ this negative value. */
     max_daily_loss_usd: number;
-    /** Circuit breaker persistente sobre o P&L das operações resolvidas mais recentes. */
+    /** Persistent circuit breaker for P&L from the most recently resolved trades. */
     rolling_pnl_guard: {
       enabled: boolean;
       window_size: number;
@@ -199,9 +199,9 @@ export interface OrderBookSnapshot {
   bestBid: number | null;
   bestAsk: number | null;
   spread: number | null;
-  /** Asks ordenados por preço ascendente (melhor ask primeiro) */
+  /** Asks sorted by ascending price (best ask first) */
   asks: OrderBookLevel[];
-  /** Bids ordenados por preço descendente (melhor bid primeiro) */
+  /** Bids sorted by descending price (best bid first) */
   bids: OrderBookLevel[];
 }
 
@@ -283,7 +283,7 @@ export type ExecutionResultCategory =
   | "network_or_api"
   | "clob_rejected";
 
-/** Telemetria sanitizada que correlaciona o book observado com a submissão CLOB. */
+/** Sanitized telemetry linking the observed book to CLOB submission. */
 export interface ExecutionCorrelationTrace {
   snapshotObservedAt: string;
   snapshotAgeMsAtSubmit: number;
@@ -346,7 +346,7 @@ export interface BetResult {
   timestamp: string;
 }
 
-/** skipped=ignorada | failed=erro | unfilled=ordem sem compra | filled=comprada | paper=simulada */
+/** skipped=skipped | failed=error | unfilled=no purchase | filled=purchased | paper=simulated */
 export type BetOutcome = "skipped" | "failed" | "unfilled" | "filled" | "paper" | "placed";
 
 export interface BetAttemptRecord {
@@ -432,7 +432,7 @@ export interface BotState {
   lastError: string | null;
   startedAt: string;
   pnl: PnlSummary;
-  /** false = pausado pelo dashboard; não coloca apostas */
+  /** false = paused from dashboard; does not place bets */
   tradingActive: boolean;
 }
 

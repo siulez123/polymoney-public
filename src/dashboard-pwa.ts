@@ -1,4 +1,4 @@
-/** Assets PWA / service worker do dashboard Polymoney. */
+/** PWA assets / service worker for the Polymoney dashboard. */
 
 export const DASHBOARD_MANIFEST = JSON.stringify(
   {
@@ -37,7 +37,7 @@ export const DASHBOARD_ICON_SVG = `<?xml version="1.0" encoding="UTF-8"?>
 </svg>
 `;
 
-/** Service worker: Web Push (background) + mensagens da página (foreground). */
+/** Service worker: Web Push (background) + page messages (foreground). */
 export const DASHBOARD_SERVICE_WORKER = `/* polymoney dashboard sw v4 */
 self.addEventListener('install', (event) => {
   self.skipWaiting();

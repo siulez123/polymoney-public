@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
-Diagnóstico deposit wallet (signature_type=3) no CLOB Polymarket.
+Deposit wallet diagnostics (signature_type=3) for Polymarket CLOB.
 
-Uso no VPS:
+Usage on the VPS:
   cd /opt/polymoney
   bash scripts/run-deposit-wallet-test.sh
-  bash scripts/run-deposit-wallet-test.sh --live   # tenta ordem GTC a 0.01 (não deve preencher)
+  bash scripts/run-deposit-wallet-test.sh --live   # try GTC order at 0.01 (unlikely to fill)
 """
 
 from __future__ import annotations
@@ -41,7 +41,7 @@ def load_env() -> None:
             os.environ.setdefault(key, value)
         print(f"[env] {path}")
         return
-    print("[env] .env não encontrado — variáveis de ambiente")
+    print("[env] .env not found — using environment variables")
 
 
 def ok(msg: str) -> None:
@@ -57,7 +57,7 @@ def section(title: str) -> None:
 
 
 def current_btc_token() -> tuple[str, bool]:
-    """Igual ao bot Node: GET /events?slug=... (não /markets)."""
+    """Same as the Node bot: GET /events?slug=... (not /markets)."""
     window = (int(time.time()) // 300) * 300
     slug = f"btc-updown-5m-{window}"
     url = f"https://gamma-api.polymarket.com/events?slug={slug}"
@@ -70,11 +70,11 @@ def current_btc_token() -> tuple[str, bool]:
     with urllib.request.urlopen(req, timeout=15) as resp:
         events = json.loads(resp.read().decode())
     if not events:
-        raise RuntimeError(f"Mercado não encontrado: {slug}")
+        raise RuntimeError(f"Market not found: {slug}")
     market = events[0]["markets"][0]
     token_ids = json.loads(market["clobTokenIds"])
     neg_risk = bool(market.get("negRisk", False))
-    print(f"  mercado: {slug}")
+    print(f"  market: {slug}")
     return str(token_ids[0]), neg_risk
 
 
@@ -95,7 +95,7 @@ def balance_usd(client: Any) -> float:
 
 
 def try_auth_recipe_a(private_key: str, funder: str) -> tuple[Any | None, str | None]:
-    """Receita issue #70: client com sig3+funder antes de derivar."""
+    """Issue #70 method: client with sig3+funder before deriving."""
     from py_clob_client_v2 import ClobClient, SignatureTypeV2
 
     try:
@@ -114,7 +114,7 @@ def try_auth_recipe_a(private_key: str, funder: str) -> tuple[Any | None, str | 
 
 
 def try_auth_recipe_b(private_key: str, funder: str) -> tuple[Any | None, str | None]:
-    """Quickstart oficial: derivar em client temporário, depois client completo."""
+    """Official quickstart: derive using a temporary client, then create the full client."""
     from py_clob_client_v2 import ClobClient, SignatureTypeV2
 
     try:
@@ -166,11 +166,11 @@ def try_post_test_order(client: Any, token_id: str, neg_risk: bool) -> tuple[boo
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Teste CLOB deposit wallet (sig 3)")
+    parser = argparse.ArgumentParser(description="CLOB deposit wallet test (sig 3)")
     parser.add_argument(
         "--live",
         action="store_true",
-        help="Envia ordem GTC a 0.01 no mercado BTC actual (teste de auth)",
+        help="Send a GTC order at 0.01 in the current BTC market (authentication test)",
     )
     args = parser.parse_args()
 
@@ -180,50 +180,50 @@ def main() -> int:
     funder = os.environ.get("DEPOSIT_WALLET_ADDRESS", "")
 
     if not private_key.startswith("0x"):
-        fail("PRIVATE_KEY em falta ou inválida no .env")
+        fail("PRIVATE_KEY missing or invalid in .env")
         return 1
     if not funder.startswith("0x"):
-        fail("DEPOSIT_WALLET_ADDRESS em falta ou inválido no .env")
+        fail("DEPOSIT_WALLET_ADDRESS missing or invalid in .env")
         return 1
 
     print(f"CLOB host: {HOST}")
-    print(f"Funder (perfil): {funder}")
+    print(f"Funder (profile): {funder}")
 
-    section("1. Autenticação — receita A (sig3 antes de derivar)")
+    section("1. Authentication — method A (sig3 before deriving)")
     client, err_a = try_auth_recipe_a(private_key, funder)
     if client:
-        ok("API key derivada (receita A)")
+        ok("API key derived (method A)")
     else:
-        fail(f"Receita A falhou: {err_a}")
+        fail(f"Method A failed: {err_a}")
 
     if not client:
-        section("1b. Autenticação — receita B (quickstart)")
+        section("1b. Authentication — method B (quickstart)")
         client, err_b = try_auth_recipe_b(private_key, funder)
         if client:
-            ok("API key derivada (receita B)")
+            ok("API key derived (method B)")
         else:
-            fail(f"Receita B falhou: {err_b}")
+            fail(f"Method B failed: {err_b}")
             print(
-                "\nConclusão: nenhuma receita Python funcionou. "
-                "Tenta order-sidecar Rust: cd order-sidecar && cargo run"
+                "\nConclusion: neither Python method worked. "
+                "Try the Rust order sidecar (not included in this distribution)."
             )
             return 2
 
-    section("2. Saldo collateral")
+    section("2. Collateral balance")
     try:
         usd = balance_usd(client)
         if usd > 0:
-            ok(f"Saldo CLOB: ${usd:.2f}")
+            ok(f"CLOB balance: ${usd:.2f}")
         else:
-            fail("Saldo CLOB = $0 — auth pode estar no endereço errado (EOA vs perfil)")
+            fail("CLOB balance = $0 — auth may target the wrong address (EOA vs profile)")
     except Exception as exc:
         fail(f"get_balance_allowance: {exc}")
         usd = 0.0
 
-    section("3. Ordem de teste")
+    section("3. Test order")
     if not args.live:
-        print("  (omitido — corre com --live para testar POST /order)")
-        print("\nResumo: auth OK" + (" + saldo OK" if usd > 0 else " mas saldo $0"))
+        print("  (skipped — run with --live to test POST /order)")
+        print("\nSummary: auth OK" + (" + balance OK" if usd > 0 else " but balance $0"))
         return 0 if usd > 0 else 3
 
     try:
@@ -234,16 +234,16 @@ def main() -> int:
 
     placed, detail = try_post_test_order(client, token_id, neg_risk)
     if placed:
-        ok("Ordem aceite pelo CLOB")
-        print(f"  resposta: {detail[:500]}")
+        ok("Order accepted by CLOB")
+        print(f"  response: {detail[:500]}")
         return 0
 
-    fail("Ordem rejeitada")
-    print(f"  detalhe: {detail[:800]}")
+    fail("Order rejected")
+    print(f"  detail: {detail[:800]}")
     if "signer address has to be the address of the API KEY" in detail:
         print(
-            "\nConclusão: bug #65 — API key EOA, ordem deposit wallet. "
-            "Próximo passo: sidecar Rust (order-sidecar/)"
+            "\nConclusion: bug #65 — EOA API key, deposit wallet order. "
+            "Next step: Rust sidecar (not included in this distribution)"
         )
         return 5
     return 6

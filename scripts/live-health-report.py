@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Relatório sanitizado de saúde e execução do Polymoney."""
+"""Sanitized Polymoney health and execution report."""
 
 from __future__ import annotations
 
@@ -75,7 +75,7 @@ def parse_config_text(config_text: str) -> dict[str, Any]:
     safety = section_text(config_text, "safety")
     entry_windows = parse_entry_windows(timing)
     return {
-        # Compatibilidade com consumidores existentes.
+        # Compatibility with existing consumers.
         "bet_seconds_before_close": direct_value(timing, "bet_seconds_before_close"),
         "min_delta_bps": direct_value(strategy, "min_delta_bps"),
         "max_price": direct_value(bet, "max_price"),
@@ -162,39 +162,37 @@ def load_local(root: Path) -> tuple[list, dict, dict, dict | None]:
 def classify_fail(error: str | None) -> str:
     value = (error or "").lower()
     if any(term in value for term in (
-        "book sem asks",
-        "lados vazios",
+        "book has no asks",
+        "empty sides",
         "no resting",
         "no orders found",
-        "sem liquidez no lado",
+        "no liquidity on side",
         "no liquidity",
     )):
         return "no_liquidity"
     if (
-        ("melhor ask" in value or "best ask" in value)
+        "best ask" in value
         and ("max_price" in value or "max price" in value)
     ) or (
-        ("preço" in value or "price" in value)
-        and ("acima de max_price" in value or "above max_price" in value)
+        "price" in value
+        and "above max_price" in value
     ):
         return "price_above_limit"
     if any(term in value for term in (
-        "depth insuficiente",
         "insufficient depth",
-        "mín. ordem não cabe",
-        "min. order does not fit",
         "minimum order does not fit",
+        "min. order does not fit",
     )):
         return "insufficient_depth"
-    if any(term in value for term in ("max_price", "max price", "depth", "liquidez utiliz")):
+    if any(term in value for term in ("max_price", "max price", "depth", "usable liquidity")):
         return "depth_or_max_price"
-    if any(term in value for term in ("liquidity", "sem liquidez")):
+    if any(term in value for term in ("liquidity", "no liquidity")):
         return "no_liquidity"
     if "invalid amounts" in value or "quantiz" in value:
         return "invalid_amounts"
-    if any(term in value for term in ("feed", "chainlink", "preço não disponível", "price unavailable", "stale")):
+    if any(term in value for term in ("feed", "chainlink", "price unavailable", "stale")):
         return "feed_unavailable"
-    if any(term in value for term in ("max_order_usd", "max_total_usd", "limite", "circuit breaker")):
+    if any(term in value for term in ("max_order_usd", "max_total_usd", "limit", "circuit breaker")):
         return "risk_limit"
     if any(term in value for term in ("unauthor", "signature", "wallet", "allowance", "insufficient funds", "balance")):
         return "auth_or_wallet"
@@ -206,7 +204,7 @@ def classify_fail(error: str | None) -> str:
 
 
 PRICE_ABOVE_RE = re.compile(
-    r"(?:melhor ask|best ask)\s+([0-9]+(?:\.[0-9]+)?)\s*>\s*(?:max_price|max price)\s+([0-9]+(?:\.[0-9]+)?)",
+    r"best ask\s+([0-9]+(?:\.[0-9]+)?)\s*>\s*(?:max_price|max price)\s+([0-9]+(?:\.[0-9]+)?)",
     re.IGNORECASE,
 )
 
@@ -731,39 +729,39 @@ def analyze(
                 "entry": window["entry"],
                 "evidenceCohort": "fresh_attempt_history",
                 "detail": (
-                    f"fill_rate fresh={fresh['fillRate']:.0%} com "
-                    f"{depth_fails} falhas ({failure_detail})"
+                    f"fill_rate fresh={fresh['fillRate']:.0%} with "
+                    f"{depth_fails} failures ({failure_detail})"
                 ),
-                "actions": ["comparar esta janela com as restantes antes de alterar um único parâmetro"],
+                "actions": ["compare this window with the others before changing a single parameter"],
             })
     current_feed = (operational or {}).get("feed")
     if isinstance(current_feed, dict) and current_feed.get("chainlinkStale"):
         suggestions.append({
             "priority": "high",
             "issue": "chainlink_stale",
-            "detail": f"stale há {current_feed.get('chainlinkStaleForSeconds')}s",
-            "actions": ["diagnosticar feed antes de alterar estratégia"],
+            "detail": f"stale for {current_feed.get('chainlinkStaleForSeconds')}s",
+            "actions": ["diagnose the feed before changing strategy"],
         })
     if fails.get("unknown", 0):
         suggestions.append({
             "priority": "medium",
             "issue": "falhas_nao_classificadas",
-            "detail": f"{fails['unknown']} falhas sem categoria conhecida",
-            "actions": ["adicionar categoria sanitizada antes de ajustar estratégia"],
+            "detail": f"{fails['unknown']} failures without a known category",
+            "actions": ["add a sanitized category before adjusting strategy"],
         })
     if losses >= 2 and wins + losses >= 5 and wins / (wins + losses) < 0.9:
         suggestions.append({
             "priority": "high",
             "issue": "wr_a_cair",
             "detail": f"WR={wins}/{wins + losses}",
-            "actions": ["proteger edge; não aumentar stake nem preço sem análise"],
+            "actions": ["protect edge; do not increase stake or price without analysis"],
         })
     if not suggestions and attempts_side >= 5 and fill_rate is not None and fill_rate >= 0.5:
         suggestions.append({
             "priority": "low",
             "issue": "estavel",
-            "detail": "sem ajuste necessário",
-            "actions": ["manter config"],
+            "detail": "no adjustment needed",
+            "actions": ["keep configuration"],
         })
 
     return {
@@ -836,7 +834,7 @@ def main() -> None:
 
     pnl = report["pnl"]
     counts = report["counts"]
-    print(f"Polymoney live health — últimas {args.hours:g}h @ {report['generatedAt']}")
+    print(f"Polymoney live health — last {args.hours:g}h @ {report['generatedAt']}")
     print(f"operational: {report['operational']}")
     print(f"feed: {report['feed']}")
     print(f"config: {report['config']}")

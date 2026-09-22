@@ -38,7 +38,7 @@ export async function fetchOrderBook(
   return { bestBid, bestAsk, spread, asks, bids };
 }
 
-/** Liquidez taker (USD e shares) nos asks com preço ≤ maxPrice. */
+/** Taker liquidity (USD and shares) in asks priced ≤ maxPrice. */
 export function askDepthWithinPrice(
   book: OrderBookSnapshot,
   maxPrice: number,
@@ -84,7 +84,7 @@ export async function getBooksForMarket(
       up: { bestBid: up.bestBid, bestAsk: up.bestAsk, spread: up.spread, askLevels: up.asks.length },
       down: { bestBid: down.bestBid, bestAsk: down.bestAsk, spread: down.spread, askLevels: down.asks.length },
     },
-    "Order books obtidos",
+    "Order books fetched",
   );
   return { up, down };
 }

@@ -9,7 +9,6 @@
   "SECURITY.md": "SECURITY.md",
   "config.example.yaml": "config.example.yaml",
   "docs/public-release.md": "docs/public-release.md",
-  "docs/research-roadmap.md": "docs/research-roadmap.md",
   "package-lock.json": "package-lock.json",
   "package.json": "package.json",
   "public-release-manifest.json": "public-release-manifest.json",

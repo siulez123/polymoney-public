@@ -1,13 +1,10 @@
 # Polymoney
 
-Research software, not a demonstrated source of income. The BTC 5-minute engine is implemented; sports, weather and multi-outcome baskets are research proposals, not enabled strategies. Start in paper mode without wallet credentials.
+Research software, not a demonstrated source of income. The BTC 5-minute engine is implemented. Start in paper mode without wallet credentials.
 
-- [New strategies and markets (PT)](docs/research-roadmap.md)
 - [Public source release](docs/public-release.md) · [Security](SECURITY.md)
 
 Automated bot for the **Polymarket Bitcoin Up/Down 5-minute** market. It discovers the active market, waits for the configured timing window, and places paper or live orders via SecureClient (deposit wallet).
-
-[README em português](README.md)
 
 ## How it works
 
@@ -104,7 +101,7 @@ Non-secrets → **`config.yaml`**. Secrets → **`.env`** (or host env vars).
 3. Set `TELEGRAM_BOT_TOKEN` + `TELEGRAM_CHAT_ID` in `.env`
 4. Set `telegram.enabled: true` in config
 
-Notifications: bet, P&L (configurable). Commands: `/status`, `/saldo`, `/ultimas`, `/help`.
+Notifications: bet, P&L (configurable). Commands: `/status`, `/balance`, `/recent`, `/help`.
 
 ## Dashboard
 

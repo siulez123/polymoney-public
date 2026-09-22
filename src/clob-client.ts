@@ -39,13 +39,13 @@ async function resolveApiCreds(
   const fromEnv = envApiCreds(secrets);
 
   if (fromEnv && sigType !== DEPOSIT_WALLET_SIG_TYPE) {
-    log.info("A usar POLY_API_* do ambiente");
+    log.info("Using POLY_API_* from the environment");
     return fromEnv;
   }
 
   if (fromEnv && sigType === DEPOSIT_WALLET_SIG_TYPE) {
     log.warn(
-      "POLY_API_* ignoradas em signature_type=3 — credenciais do npm run derive-api-key ficam ligadas ao signer, não ao perfil",
+      "POLY_API_* ignored for signature_type=3 — npm run derive-api-key credentials are bound to the signer, not the profile",
     );
   }
 
@@ -60,7 +60,7 @@ async function resolveApiCreds(
     const creds = await depositClient.createOrDeriveApiKey();
     log.info(
       { funder: secrets.depositWalletAddress },
-      "API key derivada para deposit wallet",
+      "API key derived for deposit wallet",
     );
     return creds;
   }
@@ -93,12 +93,12 @@ export async function initClobClient(
   if (sigType === DEPOSIT_WALLET_SIG_TYPE) {
     log.info(
       { signer: account.address, funder: secrets.depositWalletAddress },
-      "Modo deposit wallet (signature_type=3)",
+      "Deposit wallet mode (signature_type=3)",
     );
   } else if (sigType === 1) {
     log.info(
       { signer: account.address, funder: secrets.depositWalletAddress },
-      "Modo proxy wallet (signature_type=1)",
+      "Proxy wallet mode (signature_type=1)",
     );
   }
 
@@ -141,14 +141,14 @@ export async function checkGeoblock(config: AppConfig, log: Logger): Promise<Geo
       const where = [result.country, result.region].filter(Boolean).join("/");
       log.warn(
         { geo: result },
-        `Aviso geoblock: IP pode estar bloqueado (${where}) — a tentar ordens na mesma`,
+        `Geoblock warning: IP may be blocked (${where}) — still attempting orders`,
       );
     } else {
       log.info({ country: result.country, region: result.region }, "Geoblock check OK");
     }
     return result;
   } catch (err) {
-    log.warn({ err }, "Não foi possível verificar geoblock, a continuar");
+    log.warn({ err }, "Could not check geoblock, continuing");
     return { blocked: false };
   }
 }

@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
-# Instala deps Python (uma vez) e corre o diagnóstico deposit wallet.
+# Install Python dependencies (once) and run deposit wallet diagnostics.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
 if ! command -v python3 >/dev/null; then
-  echo "python3 não encontrado. No VPS: apt-get install -y python3 python3-venv"
+  echo "python3 not found. On the VPS: apt-get install -y python3 python3-venv"
   exit 1
 fi
 
 if ! python3 -m venv --help >/dev/null 2>&1; then
-  echo "python3-venv em falta. No VPS: apt install -y python3-venv"
+  echo "python3-venv missing. On the VPS: apt install -y python3-venv"
   exit 1
 fi
 
@@ -25,10 +25,10 @@ venv_ok() {
 
 if ! venv_ok; then
   if [ -d "$VENV" ]; then
-    echo "Venv incompleto ou sem deps — a recriar $VENV ..."
+    echo "Incomplete venv or missing dependencies — recreating $VENV ..."
     rm -rf "$VENV"
   else
-    echo "A criar venv em $VENV ..."
+    echo "Creating venv at $VENV ..."
   fi
   python3 -m venv "$VENV"
   "$VENV/bin/pip" install -q --upgrade pip

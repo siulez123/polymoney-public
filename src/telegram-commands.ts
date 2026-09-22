@@ -50,11 +50,11 @@ export interface CommandSnapshot {
 
 export function formatHelpMessage(): string {
   return [
-    "<b>Comandos Polymoney</b>",
-    "/status — estado do bot, config e P&amp;L",
-    "/saldo — saldo CLOB e staking",
-    "/ultimas — últimas interações (apostas)",
-    "/help — esta ajuda",
+    "<b>Polymoney commands</b>",
+    "/status — bot status, config and P&amp;L",
+    "/balance — CLOB balance and staking",
+    "/recent — recent interactions (bets)",
+    "/help — this help message",
   ].join("\n");
 }
 
@@ -66,22 +66,22 @@ export function formatStatusMessage(snap: CommandSnapshot): string {
       : null;
 
   return [
-    "🤖 <b>Estado do bot</b>",
-    `Status: <b>${escapeHtml(state.status)}</b>${state.tradingActive ? "" : " (pausado)"}`,
-    `Modo: <b>${escapeHtml(config.trading.mode)}</b> · ${escapeHtml(config.strategy.mode)}`,
+    "🤖 <b>Bot status</b>",
+    `Status: <b>${escapeHtml(state.status)}</b>${state.tradingActive ? "" : " (paused)"}`,
+    `Mode: <b>${escapeHtml(config.trading.mode)}</b> · ${escapeHtml(config.strategy.mode)}`,
     `Uptime: ${fmtUptime(uptimeSec)}`,
-    state.currentSlug ? `Mercado: <code>${escapeHtml(state.currentSlug)}</code>` : "Mercado: —",
+    state.currentSlug ? `Market: <code>${escapeHtml(state.currentSlug)}</code>` : "Market: —",
     state.nextBetAt
-      ? `Próxima aposta: ${escapeHtml(state.nextBetAt)} (${nextIn !== null ? `${nextIn.toFixed(0)}s` : "?"})`
-      : "Próxima aposta: —",
+      ? `Next bet: ${escapeHtml(state.nextBetAt)} (${nextIn !== null ? `${nextIn.toFixed(0)}s` : "?"})`
+      : "Next bet: —",
     formatTimingLine(config),
     `Max price: ${config.bet.max_price} · order: ${config.bet.order_type}`,
     "",
     "<b>P&amp;L</b>",
-    `Resolvidas: ${pnl.resolved} · W/L: ${pnl.wins}/${pnl.losses} · WR: ${(pnl.winRate * 100).toFixed(1)}%`,
+    `Resolved: ${pnl.resolved} · W/L: ${pnl.wins}/${pnl.losses} · WR: ${(pnl.winRate * 100).toFixed(1)}%`,
     `P&amp;L total: <b>${fmtSignedUsd(pnl.totalPnl)}</b>`,
     `Pending: ${pnl.pending} · Skipped: ${pnl.skipped} · Failed: ${pnl.failed}`,
-    state.lastError ? `\n⚠️ Último erro: ${escapeHtml(state.lastError)}` : "",
+    state.lastError ? `\n⚠️ Last error: ${escapeHtml(state.lastError)}` : "",
   ]
     .filter((l) => l !== "")
     .join("\n");
@@ -92,12 +92,12 @@ export function formatBalanceMessage(snap: CommandSnapshot): string {
   const bal =
     balance.currentBalanceUsd !== null
       ? fmtUsd(balance.currentBalanceUsd)
-      : "indisponível";
+      : "unavailable";
   const lines = [
-    "💵 <b>Saldo conta</b>",
+    "💵 <b>Account balance</b>",
     `Cash CLOB: <b>${bal}</b>`,
-    balance.lastUpdated ? `Atualizado: ${escapeHtml(balance.lastUpdated)}` : "",
-    balance.lastError ? `Erro saldo: ${escapeHtml(balance.lastError)}` : "",
+    balance.lastUpdated ? `Updated: ${escapeHtml(balance.lastUpdated)}` : "",
+    balance.lastError ? `Balance error: ${escapeHtml(balance.lastError)}` : "",
     wallet.polymarketAccount
       ? `Wallet: <code>${escapeHtml(wallet.polymarketAccount)}</code>`
       : "",
@@ -108,11 +108,11 @@ export function formatBalanceMessage(snap: CommandSnapshot): string {
     lines.push(
       "",
       "<b>Staking</b>",
-      `Modo: ${escapeHtml(staking.mode)}`,
-      `Próxima aposta: <b>${fmtUsd(staking.nextStakeUsd)}</b>`,
-      `Banca série: ${fmtUsd(staking.seriesBankroll)}`,
+      `Mode: ${escapeHtml(staking.mode)}`,
+      `Next bet: <b>${fmtUsd(staking.nextStakeUsd)}</b>`,
+      `Series bankroll: ${fmtUsd(staking.seriesBankroll)}`,
       staking.recoveryCapEnabled
-        ? `Recovery pendente: ${fmtUsd(staking.pendingRecoveryUsd)} (teto ${fmtUsd(staking.recoveryMaxStakeUsd)})`
+        ? `Pending recovery: ${fmtUsd(staking.pendingRecoveryUsd)} (cap ${fmtUsd(staking.recoveryMaxStakeUsd)})`
         : "",
     );
   }
@@ -133,10 +133,10 @@ function outcomeLabel(b: BetRecord): string {
 export function formatRecentMessage(snap: CommandSnapshot, limit = 8): string {
   const bets = snap.recentBets.slice(0, limit);
   if (bets.length === 0) {
-    return "📋 <b>Últimas interações</b>\nSem histórico ainda.";
+    return "📋 <b>Recent interactions</b>\nNo history yet.";
   }
 
-  const lines = ["📋 <b>Últimas interações</b>", ""];
+  const lines = ["📋 <b>Recent interactions</b>", ""];
   for (const b of bets) {
     const when = b.placedAt ? b.placedAt.replace("T", " ").slice(0, 19) : "?";
     const side = b.side ? b.side.toUpperCase() : "—";

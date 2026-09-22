@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
+import { Script } from "node:vm";
+import { getUi, parseLocale, LOCALES } from "./i18n/index.js";
 import { parse as parseYaml } from "yaml";
 import { configSchema } from "./config.js";
 import { getConfigSections } from "./config-meta.js";
@@ -20,7 +22,7 @@ test("config screen covers every current system setting in all locales", () => {
   const config = configSchema.parse(parseYaml(readFileSync("config.yaml", "utf8")));
   const expectedPaths = configPaths(config);
 
-  for (const locale of ["pt", "en", "es"] as const) {
+  for (const locale of ["en", "es"] as const) {
     const sections = getConfigSections(locale);
     const fields = sections.flatMap((section) => section.fields);
     const visiblePaths = new Set(fields.map((field) => field.path));
@@ -45,3 +47,18 @@ test("dashboard All filter keeps the complete history renderable", () => {
   assert.match(html, /validateSettingsForm/);
 });
 
+
+test("public dashboard defaults to English, including legacy locale preferences", () => {
+  assert.equal(parseLocale(), "en");
+  assert.equal(parseLocale("pt-PT"), "en");
+  assert.equal(parseLocale("unknown"), "en");
+  assert.equal(parseLocale("es-ES"), "es");
+  assert.deepEqual(LOCALES, ["en", "es"]);
+  assert.equal(getUi(parseLocale("pt-PT")).langName, "English");
+  const html = renderDashboardHtml();
+  assert.match(html, /<html lang="en">/);
+  assert.doesNotMatch(html, /data-lang="pt"/);
+  for (const match of html.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)) {
+    assert.doesNotThrow(() => new Script(match[1]));
+  }
+});

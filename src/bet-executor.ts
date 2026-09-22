@@ -27,11 +27,11 @@ export interface SessionStats {
 }
 
 export interface BetAttemptOptions {
-  /** Override de strategy.min_delta_bps para esta tentativa (entry window) */
+  /** Override strategy.min_delta_bps for this attempt (entry window) */
   minDeltaBps?: number;
-  /** Override de bet.max_price para esta tentativa */
+  /** Override bet.max_price for this attempt */
   maxPrice?: number;
-  /** Segundos antes do fecho desta janela (para logs/reason) */
+  /** Seconds before this window closes (for logs/reason) */
   entrySecondsBeforeClose?: number;
 }
 
@@ -315,7 +315,7 @@ export async function evaluateShadowObservation(
       )?.fullyFillable ?? false,
       shadowStrategies,
     },
-    "Observação de liquidez registada (shadow-only)",
+    "Liquidity observation recorded (shadow-only)",
   );
 
   return {
@@ -373,7 +373,7 @@ async function resolveBuyPrice(
   const askUsable =
     book.bestAsk !== null && book.bestAsk <= bet.max_price + 1e-9;
 
-  // Market order só quando há ask ≤ max_price; senão limit resting (se permitido)
+  // Market order only when ask ≤ max_price; otherwise resting limit (if allowed)
   if (bet.use_market_order) {
     if (askUsable && book.bestAsk !== null) {
       return {
@@ -434,42 +434,42 @@ function validateSafety(
   const { safety, bet } = config;
 
   if (size < safety.min_order_size) {
-    return `Tamanho ${size} abaixo do mínimo ${safety.min_order_size}`;
+    return `Size ${size} below the minimum ${safety.min_order_size}`;
   }
 
   const notional = price * size;
 
   if (safety.max_order_usd > 0 && config.staking.mode !== "all_in" && notional > safety.max_order_usd) {
-    return `Ordem $${notional.toFixed(2)} excede max_order_usd $${safety.max_order_usd}`;
+    return `Order $${notional.toFixed(2)} exceeds max_order_usd $${safety.max_order_usd}`;
   }
 
   if (safety.max_total_usd > 0 && stats.totalUsdSpent + notional > safety.max_total_usd) {
-    return `Total diário UTC excederia max_total_usd ${safety.max_total_usd}`;
+    return `UTC daily total would exceed max_total_usd ${safety.max_total_usd}`;
   }
 
   if (safety.max_bets_per_session > 0 && stats.betsPlaced >= safety.max_bets_per_session) {
-    return `Limite de apostas por sessão atingido (${safety.max_bets_per_session})`;
+    return `Session bet limit reached (${safety.max_bets_per_session})`;
   }
 
   if (safety.max_spread > 0 && book.spread !== null && book.spread > safety.max_spread) {
     const takerFromBook = priceSource === "book_ask" || priceSource === "book_ask_limit";
     if (!takerFromBook) {
-      return `Spread ${book.spread.toFixed(3)} excede max_spread ${safety.max_spread}`;
+      return `Spread ${book.spread.toFixed(3)} exceeds max_spread ${safety.max_spread}`;
     }
   }
 
   if (safety.require_liquidity && book.bestAsk === null && priceSource === "none") {
-    return `Sem liquidez no lado ${side}`;
+    return `No liquidity on side ${side}`;
   }
 
   if (price > bet.max_price) {
-    return `Preço ${price} acima de max_price ${bet.max_price}`;
+    return `Price ${price} above max_price ${bet.max_price}`;
   }
 
   return null;
 }
 
-/** Ajusta shares ao depth dos asks ≤ max_price. Devolve erro retryable se depth insuficiente. */
+/** Adjust shares to ask depth ≤ max_price. Return a retryable error if depth is insufficient. */
 function applySizeToDepth(
   config: AppConfig,
   book: OrderBookSnapshot,
@@ -489,18 +489,18 @@ function applySizeToDepth(
     const askLevels = book.asks.length;
     const detail =
       book.bestAsk === null
-        ? `book sem asks (lados vazios no CLOB)`
+        ? `book has no asks (empty CLOB sides)`
         : book.bestAsk > bet.max_price + 1e-9
-          ? `melhor ask ${book.bestAsk.toFixed(3)} > max_price ${bet.max_price} `
-            + `(${askLevels} níveis no book, 0 ≤ max_price)`
+          ? `best ask ${book.bestAsk.toFixed(3)} > max_price ${bet.max_price} `
+            + `(${askLevels} book levels, 0 ≤ max_price)`
           : `depth=$${depth.depthUsd.toFixed(2)} / ${depth.depthShares.toFixed(2)} sh `
-            + `em ${depth.levels} níveis ≤ max_price (mín. ordem não cabe)`;
+            + `across ${depth.levels} levels ≤ max_price (minimum order does not fit)`;
     return {
       size: desiredShares,
       depthUsd: depth.depthUsd,
       depthShares: depth.depthShares,
       capped: false,
-      error: `Sem liquidez utilizável ≤ max_price ${bet.max_price}: ${detail}`,
+      error: `No usable liquidity ≤ max_price ${bet.max_price}: ${detail}`,
     };
   }
 
@@ -525,7 +525,7 @@ function applySizeToDepth(
       depthShares: depth.depthShares,
       capped: false,
       error:
-        `Depth insuficiente após buffer ${buffer}: `
+        `Insufficient depth after buffer ${buffer}: `
         + `$${usableUsd.toFixed(2)} / ${usableShares.toFixed(2)} sh`,
     };
   }
@@ -546,8 +546,8 @@ function isLiquidityRetryable(error: string | undefined): boolean {
     || lower.includes("liquidity")
     || lower.includes("no resting")
     || lower.includes("no orders found to match")
-    || lower.includes("depth insuficiente")
-    || lower.includes("sem liquidez")
+    || lower.includes("insufficient depth")
+    || lower.includes("no liquidity")
   );
 }
 
@@ -598,7 +598,7 @@ export async function executeBet(
       minDeltaBps: config.strategy.min_delta_bps,
       maxPrice: config.bet.max_price,
     },
-    "Decisão da estratégia",
+    "Strategy decision",
   );
 
   if (decision.side === null) {
@@ -676,7 +676,7 @@ export async function executeBet(
         reason: level.reason,
       })),
     },
-    "Curva shadow de execução calculada (sem enviar ordem)",
+    "Shadow execution curve calculated (without submitting an order)",
   );
 
   let depthMeta: { depthUsd: number; depthShares: number; capped: boolean } | null = null;
@@ -695,7 +695,7 @@ export async function executeBet(
         allowLimitWithoutAsk: config.safety.allow_limit_without_ask,
         requireLiquidity: config.safety.require_liquidity,
       });
-      // size_to_depth é para market/taker; com allow_limit_without_ask colocamos limit resting
+      // size_to_depth is for market/taker; allow_limit_without_ask places a resting limit
       if (config.safety.allow_limit_without_ask) {
         useMarketOrder = false;
         price = config.bet.max_price;
@@ -726,7 +726,7 @@ export async function executeBet(
             price,
             depthError: sized.error,
           },
-          "Sem depth ≤ max_price — a colocar limit resting",
+          "No depth ≤ max_price — placing resting limit",
         );
       } else if (boundedFakProbe) {
         price = config.bet.max_price;
@@ -739,12 +739,12 @@ export async function executeBet(
             maxOrderUsd: config.safety.max_order_usd,
             maxTotalUsd: config.safety.max_total_usd,
           },
-          "Book local sem asks — a enviar sonda FAK limitada",
+          "Local book has no asks — sending a capped FAK probe",
         );
       } else {
         log.warn(
           { side, price, desiredSize: size, ...depthMeta, bestAsk: book.bestAsk },
-          "Aposta bloqueada por size-to-depth",
+          "Bet blocked by size-to-depth",
         );
         return {
           success: false,
@@ -769,7 +769,7 @@ export async function executeBet(
 
   const safetyError = validateSafety(config, stats, side, price, size, book, priceSource);
   if (safetyError) {
-    log.warn({ safetyError, side, price, size, priceSource, book }, "Aposta abortada por safety");
+    log.warn({ safetyError, side, price, size, priceSource, book }, "Bet aborted by safety checks");
     return {
       success: false,
       paper: config.trading.mode === "paper",
@@ -812,7 +812,7 @@ export async function executeBet(
         askLevels: book.asks.length,
       },
     },
-    "A executar aposta",
+    "Executing bet",
   );
 
   if (config.trading.mode === "paper") {
@@ -869,7 +869,7 @@ export async function executeBet(
   };
 
   if (result.error) {
-    log.error({ error: result.error, clobDetail: result.detail }, "Falha ao colocar ordem");
+    log.error({ error: result.error, clobDetail: result.detail }, "Failed to place order");
     return {
       success: false,
       paper: false,
@@ -906,7 +906,7 @@ export async function executeBet(
     );
     log.warn(
       { orderId: result.orderId, status: result.status, clobDetail: unfilled.detail, useMarketOrder },
-      "Ordem enviada mas sem compra",
+      "Order submitted but unfilled",
     );
     return {
       success: false,
@@ -934,7 +934,7 @@ export async function executeBet(
 
   log.info(
     { orderId: result.orderId, status: result.status, filledSize, filledCost, platformFee: result.platformFee, totalCost: result.totalCost },
-    "Compra confirmada no Polymarket",
+    "Purchase confirmed on Polymarket",
   );
 
   return {

@@ -10,30 +10,30 @@ def evaluate(report, now=None):
     now = now or datetime.now(timezone.utc)
     reasons = []
     if not isinstance(report, dict):
-        return ["relatório inválido"]
+        return ["invalid report"]
     try:
         stamp = datetime.fromisoformat(report['generatedAt'].replace('Z', '+00:00'))
         age = (now - stamp).total_seconds()
         if not -60 <= age <= 900:
-            reasons.append("relatório desatualizado ou data futura")
+            reasons.append("stale report or future timestamp")
     except (KeyError, TypeError, ValueError, AttributeError):
-        reasons.append("data de recolha indisponível")
+        reasons.append("collection timestamp unavailable")
     operational = report.get('operational')
     if (not isinstance(operational, dict)
             or not isinstance(operational.get('status'), str)
             or not operational['status'].strip()
             or operational['status'] == 'unknown'
             or type(operational.get('tradingActive')) is not bool):
-        reasons.append("estado operacional indisponível ou inválido")
+        reasons.append("operational state unavailable or invalid")
     feed = report.get('feed')
     current = feed.get('current') if isinstance(feed, dict) else None
     required = ('running', 'connected', 'chainlinkConnected', 'chainlinkStale')
     if (not isinstance(current, dict)
             or any(type(current.get(key)) is not bool for key in required)):
-        reasons.append("estado do feed indisponível ou inválido")
+        reasons.append("feed state unavailable or invalid")
     elif (not current['running'] or not current['connected']
           or not current['chainlinkConnected'] or current['chainlinkStale']):
-        reasons.append("Chainlink desligado, parado ou desatualizado")
+        reasons.append("Chainlink disconnected, stopped or stale")
     return reasons
 
 

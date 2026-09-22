@@ -3,7 +3,7 @@ import { dashboardI18nJson } from "./i18n/index.js";
 export function renderDashboardHtml(): string {
   const i18nJson = dashboardI18nJson();
   return `<!DOCTYPE html>
-<html lang="pt">
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -331,18 +331,17 @@ export function renderDashboardHtml(): string {
   <header>
     <div>
       <h1>Polymoney Control Center</h1>
-      <div class="subtitle" data-i18n="subtitle">BTC Up/Down 5m — tempo real</div>
+      <div class="subtitle" data-i18n="subtitle">BTC Up/Down 5m — live</div>
     </div>
     <div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center">
       <div class="lang-switch" id="lang-switch" title="Language">
-        <button type="button" data-lang="pt">PT</button>
         <button type="button" data-lang="en">EN</button>
         <button type="button" data-lang="es">ES</button>
       </div>
-      <button type="button" class="ctrl-btn play" id="btn-play" data-i18n="play" data-i18n-title="playTitle" title="Retomar apostas" disabled>▶ Play</button>
-      <button type="button" class="ctrl-btn stop" id="btn-stop" data-i18n="stop" data-i18n-title="stopTitle" title="Pausar apostas">■ Stop</button>
-      <button type="button" class="ctrl-btn notify" id="btn-notify" data-i18n="notify" data-i18n-title="notifyTitle" title="Notificações">🔔 Notificar</button>
-      <button type="button" class="ctrl-btn" id="btn-settings" data-i18n="settings" data-i18n-title="settingsTitle" title="Configurar parâmetros">⚙ Config</button>
+      <button type="button" class="ctrl-btn play" id="btn-play" data-i18n="play" data-i18n-title="playTitle" title="Resume betting" disabled>▶ Play</button>
+      <button type="button" class="ctrl-btn stop" id="btn-stop" data-i18n="stop" data-i18n-title="stopTitle" title="Pause betting">■ Stop</button>
+      <button type="button" class="ctrl-btn notify" id="btn-notify" data-i18n="notify" data-i18n-title="notifyTitle" title="Notifications">🔔 Notify</button>
+      <button type="button" class="ctrl-btn" id="btn-settings" data-i18n="settings" data-i18n-title="settingsTitle" title="Configure parameters">⚙ Config</button>
       <span class="badge" id="status-badge"><span class="dot" id="status-dot"></span><span id="status-text">—</span></span>
       <span class="badge" id="mode-badge">—</span>
       <span class="badge" id="updated-at">—</span>
@@ -357,14 +356,14 @@ export function renderDashboardHtml(): string {
   <div class="charts">
     <div class="card">
       <div class="chart-head">
-        <h2 data-i18n="pnlCumulative">P&L acumulado</h2>
+        <h2 data-i18n="pnlCumulative">Cumulative P&L</h2>
         <div class="chart-controls" id="pnl-range-controls" data-chart="pnl"></div>
       </div>
       <div class="chart-wrap"><canvas id="pnl-chart"></canvas></div>
       <div class="chart-meta" id="pnl-chart-meta"></div>
     </div>
     <div class="card">
-      <h2 data-i18n="results">Resultados</h2>
+      <h2 data-i18n="results">Results</h2>
       <div class="chart-wrap"><canvas id="wl-chart"></canvas></div>
     </div>
   </div>
@@ -372,7 +371,7 @@ export function renderDashboardHtml(): string {
   <div class="charts charts-balance">
     <div class="card">
       <div class="chart-head">
-        <h2 data-i18n="balanceUsdc">Saldo USDC (conta)</h2>
+        <h2 data-i18n="balanceUsdc">USDC balance (account)</h2>
         <div class="chart-controls" id="bal-range-controls" data-chart="bal"></div>
       </div>
       <div class="chart-wrap tall"><canvas id="balance-chart"></canvas></div>
@@ -382,11 +381,11 @@ export function renderDashboardHtml(): string {
 
   <div class="panels">
     <div class="card">
-      <div class="panel-title" data-i18n="system">Sistema</div>
+      <div class="panel-title" data-i18n="system">System</div>
       <dl class="kv" id="system-kv"></dl>
     </div>
     <div class="card">
-      <div class="panel-title" data-i18n="wallet">Conta Polymarket</div>
+      <div class="panel-title" data-i18n="wallet">Polymarket account</div>
       <dl class="kv" id="wallet-kv"></dl>
     </div>
     <div class="card">
@@ -394,18 +393,18 @@ export function renderDashboardHtml(): string {
       <dl class="kv" id="telegram-kv"></dl>
     </div>
     <div class="card">
-      <div class="panel-title" data-i18n="strategyConfig">Estratégia & Config</div>
+      <div class="panel-title" data-i18n="strategyConfig">Strategy & Config</div>
       <dl class="kv" id="config-kv"></dl>
     </div>
     <div class="card">
-      <div class="panel-title" data-i18n="lastAction">Última ação</div>
+      <div class="panel-title" data-i18n="lastAction">Last action</div>
       <dl class="kv" id="lastbet-kv"></dl>
     </div>
   </div>
 
   <div class="card">
     <div class="chart-head">
-      <div class="panel-title" data-i18n="tradeHistory" style="margin:0">Histórico de apostas</div>
+      <div class="panel-title" data-i18n="tradeHistory" style="margin:0">Trade history</div>
       <div class="chart-controls" id="trade-filter-controls">
         <button type="button" class="chip active" data-trade-filter="fills">Fills</button>
         <button type="button" class="chip" data-trade-filter="misses">Miss</button>
@@ -416,13 +415,13 @@ export function renderDashboardHtml(): string {
       <table>
         <thead>
           <tr>
-            <th data-i18n="colTime">Hora</th>
-            <th data-i18n="colMarket">Mercado</th>
-            <th data-i18n="colSide">Lado</th>
-            <th data-i18n="colPrice">Preço</th>
-            <th data-i18n="colCost">Custo</th>
-            <th data-i18n="colResult">Resultado</th>
-            <th data-i18n="colReason">Motivo</th>
+            <th data-i18n="colTime">Time</th>
+            <th data-i18n="colMarket">Market</th>
+            <th data-i18n="colSide">Side</th>
+            <th data-i18n="colPrice">Price</th>
+            <th data-i18n="colCost">Cost</th>
+            <th data-i18n="colResult">Result</th>
+            <th data-i18n="colReason">Reason</th>
             <th data-i18n="colPnl">P&L</th>
           </tr>
         </thead>
@@ -435,16 +434,16 @@ export function renderDashboardHtml(): string {
   <div id="view-settings" class="view">
     <div class="card">
       <div class="settings-toolbar">
-        <button type="button" class="ctrl-btn play" id="btn-config-save" data-i18n="save">Guardar</button>
-        <button type="button" class="ctrl-btn" id="btn-config-reload" data-i18n="reload">Recarregar</button>
-        <span class="settings-msg" id="settings-msg" data-i18n="settingsHint">Todos os parâmetros do bot. Alterações gravam no config.yaml.</span>
+        <button type="button" class="ctrl-btn play" id="btn-config-save" data-i18n="save">Save</button>
+        <button type="button" class="ctrl-btn" id="btn-config-reload" data-i18n="reload">Reload</button>
+        <span class="settings-msg" id="settings-msg" data-i18n="settingsHint">All bot parameters. Changes are saved to config.yaml.</span>
       </div>
       <div class="settings-sections" id="settings-sections"></div>
     </div>
   </div>
 
   <footer>
-    <span data-i18n="footerSse">Ligação SSE em tempo real</span> ·
+    <span data-i18n="footerSse">Live SSE connection</span> ·
     <a href="/api/status" style="color:var(--blue)">/api/status</a> ·
     <a href="/health" style="color:var(--blue)">/health</a>
     <span id="notify-hint" style="color:var(--muted)"></span>
@@ -453,10 +452,10 @@ export function renderDashboardHtml(): string {
   <script>
     const I18N = ${i18nJson};
     const LANG_KEY = 'pm.lang';
-    let lang = localStorage.getItem(LANG_KEY) || (navigator.language || 'pt').slice(0, 2);
-    if (!I18N[lang]) lang = 'pt';
+    let lang = localStorage.getItem(LANG_KEY) || (navigator.language || 'en').slice(0, 2);
+    if (!I18N[lang]) lang = 'en';
     function t(key) {
-      return (I18N[lang] && I18N[lang][key]) || (I18N.pt && I18N.pt[key]) || key;
+      return (I18N[lang] && I18N[lang][key]) || (I18N.en && I18N.en[key]) || key;
     }
     function applyStaticI18n() {
       document.querySelectorAll('[data-i18n]').forEach((el) => {
@@ -523,21 +522,21 @@ export function renderDashboardHtml(): string {
 
       if (!secure) {
         btn.disabled = true;
-        btn.textContent = '🔔 Precisa HTTPS';
+        btn.textContent = '🔔 HTTPS required';
         if (hint) {
-          hint.textContent = ' · abre o teu dashboard através de HTTPS para ativar notificações';
+          hint.textContent = ' · open your dashboard over HTTPS to enable notifications';
         }
         return;
       }
       if (!supported) {
         btn.disabled = true;
         btn.textContent = '🔔 N/A';
-        if (hint) hint.textContent = ' · notificações não suportadas neste browser';
+        if (hint) hint.textContent = ' · notifications not supported in this browser';
         return;
       }
       if (isIos() && !isStandalonePwa()) {
         btn.disabled = false;
-        btn.textContent = '🔔 iOS: Adicionar ao ecrã';
+        btn.textContent = '🔔 iOS: Add to Home Screen';
         if (hint) {
           hint.textContent = t('iosNotifyHint');
         }
@@ -573,9 +572,9 @@ export function renderDashboardHtml(): string {
       const reg = await navigator.serviceWorker.register('/sw.js');
       await navigator.serviceWorker.ready;
       const keyRes = await fetch(apiUrl('/api/push/vapid-public-key'));
-      if (!keyRes.ok) throw new Error('VAPID indisponível');
+      if (!keyRes.ok) throw new Error('VAPID unavailable');
       const keyJson = await keyRes.json();
-      if (!keyJson.publicKey) throw new Error('Sem chave pública VAPID');
+      if (!keyJson.publicKey) throw new Error('No public VAPID key');
 
       let sub = await reg.pushManager.getSubscription();
       if (!sub) {
@@ -591,7 +590,7 @@ export function renderDashboardHtml(): string {
       });
       if (!saveRes.ok) {
         const err = await saveRes.json().catch(() => ({}));
-        throw new Error(err.error || 'Falha ao registar push');
+        throw new Error(err.error || 'Failed to register push');
       }
       return true;
     }
@@ -635,8 +634,8 @@ export function renderDashboardHtml(): string {
     }
 
     function maybeNotifyResolutions(trades) {
-      // Com Web Push o servidor notifica em background; em foreground só se a página estiver visível
-      // e ainda não tiver push (fallback).
+      // Web Push sends background notifications; notify in foreground only if the page is visible
+      // and push is not enabled yet (fallback).
       if (document.visibilityState !== 'visible') return;
       if (typeof Notification === 'undefined') return;
       if (Notification.permission !== 'granted') return;
@@ -665,11 +664,11 @@ export function renderDashboardHtml(): string {
 
     async function enableWebNotifications() {
       if (!window.isSecureContext) {
-        alert('No telemóvel abre o teu dashboard através de HTTPS.');
+        alert('On mobile, open your dashboard over HTTPS.');
         return;
       }
       if (typeof Notification === 'undefined') {
-        alert('Este browser não suporta notificações web.');
+        alert('This browser does not support web notifications.');
         return;
       }
       if (isIos() && !isStandalonePwa()) {
@@ -691,13 +690,13 @@ export function renderDashboardHtml(): string {
           'Polymoney',
           ok
             ? t('pushActive')
-            : 'Notificações activas (mantém a app aberta em 2º plano)',
+            : 'Notifications enabled (keep the app open in the background)',
         );
       } catch (e) {
         console.warn(e);
         localStorage.removeItem(WEB_NOTIFY_KEY + '.push');
-        alert('Permissão OK, mas push falhou: ' + (e && e.message ? e.message : e) + '\\nNotificações só com a app aberta.');
-        showPnlNotification('Polymoney', 'Notificações activas (sem push — app precisa estar aberta)');
+        alert('Permission granted, but push failed: ' + (e && e.message ? e.message : e) + '\\nNotifications require the app to stay open.');
+        showPnlNotification('Polymoney', 'Notifications enabled (no push — app must remain open)');
       }
       updateNotifyBtn();
     }
@@ -724,7 +723,7 @@ export function renderDashboardHtml(): string {
       { id: '24h', label: '24h', ms: 24 * 3600e3 },
       { id: '7d', label: '7d', ms: 7 * 24 * 3600e3 },
       { id: '30d', label: '30d', ms: 30 * 24 * 3600e3 },
-      { id: 'all', label: 'Tudo', ms: null },
+      { id: 'all', label: 'All', ms: null },
     ];
     const chartPrefs = {
       pnlRange: localStorage.getItem('pm.chart.pnlRange') || '24h',
@@ -755,7 +754,7 @@ export function renderDashboardHtml(): string {
       try {
         data = text ? JSON.parse(text) : null;
       } catch (e) {
-        throw new Error('Resposta inválida (' + res.status + '): ' + (text || '(vazio)').slice(0, 120));
+        throw new Error('Invalid response (' + res.status + '): ' + (text || '(empty)').slice(0, 120));
       }
       if (!res.ok || !data || data.ok === false) {
         throw new Error((data && data.error) || ('HTTP ' + res.status));
@@ -763,7 +762,7 @@ export function renderDashboardHtml(): string {
       return data;
     }
 
-    // Re-subscrever push se já estava activo (após reload)
+    // Resubscribe to push if previously enabled (after reload)
     if (
       window.isSecureContext
       && localStorage.getItem(WEB_NOTIFY_KEY) === '1'
@@ -784,7 +783,7 @@ export function renderDashboardHtml(): string {
 
     function fmtTime(iso) {
       if (!iso) return '—';
-      return new Date(iso).toLocaleString('pt-PT');
+      return new Date(iso).toLocaleString('en-US');
     }
 
     function fmtUptime(s) {
@@ -804,7 +803,7 @@ export function renderDashboardHtml(): string {
     }
 
     function displayStatus(d) {
-      if (!d.bot.tradingActive) return 'pausado';
+      if (!d.bot.tradingActive) return 'paused';
       return d.bot.status;
     }
 
@@ -835,8 +834,8 @@ export function renderDashboardHtml(): string {
       const isPaper = d.config.mode === 'paper';
       const pnlLabel = isPaper ? 'P&L Simulado' : 'P&L Total';
       const betsSub = isPaper
-        ? d.pnl.totalBets + ' simuladas · ' + d.pnl.pending + ' à espera · ' + d.pnl.historyTotal + ' tentativas'
-        : d.pnl.totalBets + ' compradas · ' + (d.pnl.unfilled||0) + ' sem compra · ' + d.pnl.historyTotal + ' tentativas';
+        ? d.pnl.totalBets + ' simulated · ' + d.pnl.pending + ' pending · ' + d.pnl.historyTotal + ' attempts'
+        : d.pnl.totalBets + ' purchased · ' + (d.pnl.unfilled||0) + ' unfilled · ' + d.pnl.historyTotal + ' attempts';
       const nextBetSec = d.bot.nextBetAt
         ? Math.max(0, Math.round((new Date(d.bot.nextBetAt).getTime() - Date.now()) / 1000))
         : null;
@@ -875,9 +874,9 @@ export function renderDashboardHtml(): string {
       const d = new Date(iso);
       const long = rangeId === '7d' || rangeId === '30d' || rangeId === 'all';
       if (long) {
-        return d.toLocaleString('pt-PT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+        return d.toLocaleString('en-US', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
       }
-      return d.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
+      return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
     }
 
     function filterByRange(points, getAt, rangeId) {
@@ -992,12 +991,12 @@ export function renderDashboardHtml(): string {
       const meta = document.getElementById('pnl-chart-meta');
       if (meta) {
         if (!series.length) {
-          meta.textContent = 'Sem resoluções neste intervalo.';
+          meta.textContent = 'No resolutions in this range.';
         } else {
           const delta = values[values.length - 1] - values[0];
-          meta.textContent = series.length + ' pts · Δ intervalo '
+          meta.textContent = series.length + ' pts · range change '
             + (delta >= 0 ? '+' : '') + '$' + delta.toFixed(2)
-            + (chartPrefs.pnlRebase ? ' · rebasado a $0' : '');
+            + (chartPrefs.pnlRebase ? ' · rebased to $0' : '');
         }
       }
 
@@ -1030,7 +1029,7 @@ export function renderDashboardHtml(): string {
       if (!wlChart) {
         wlChart = new Chart(document.getElementById('wl-chart'), {
           type: 'doughnut',
-          data: { labels: ['Vitórias', 'Derrotas', 'Pendentes'], datasets: [{ data: wlData, backgroundColor: ['#22c55e', '#ef4444', '#eab308'], borderWidth: 0 }] },
+          data: { labels: ['Wins', 'Losses', 'Pending'], datasets: [{ data: wlData, backgroundColor: ['#22c55e', '#ef4444', '#eab308'], borderWidth: 0 }] },
           options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#8b9cb3' } } } }
         });
       } else {
@@ -1053,8 +1052,8 @@ export function renderDashboardHtml(): string {
       if (meta) {
         if (!series.length) {
           meta.textContent = history.length
-            ? 'Sem pontos neste intervalo (histórico total: ' + history.length + ').'
-            : 'Sem histórico de saldo ainda — a acumular a cada minuto.';
+            ? 'No points in this range (total history: ' + history.length + ').'
+            : 'No balance history yet — collecting every minute.';
         } else {
           const first = data[0];
           const last = data[data.length - 1];
@@ -1079,7 +1078,7 @@ export function renderDashboardHtml(): string {
           data: {
             labels,
             datasets: [{
-              label: 'Saldo $',
+              label: 'Balance $',
               data,
               borderColor: '#a855f7',
               backgroundColor: 'rgba(168,85,247,0.12)',
@@ -1140,7 +1139,7 @@ export function renderDashboardHtml(): string {
     function tradeMotive(t, outcome) {
       if (outcome === 'failed' || outcome === 'unfilled') return t.error || '—';
       if (outcome === 'skipped') return t.strategyReason || t.error || '—';
-      if (t.orderId) return (t.strategyReason || 'ok') + ' · ordem ' + t.orderId.slice(0, 10) + '…';
+      if (t.orderId) return (t.strategyReason || 'ok') + ' · order ' + t.orderId.slice(0, 10) + '…';
       return t.strategyReason || '—';
     }
 
@@ -1230,7 +1229,7 @@ export function renderDashboardHtml(): string {
       const modeBadge = document.getElementById('mode-badge');
       modeBadge.textContent = d.config.mode.toUpperCase() + ' · ' + d.config.strategy;
       modeBadge.className = 'badge' + (isPaper ? ' paper-mode' : '');
-      document.getElementById('updated-at').textContent = '● live ' + new Date(d.timestamp).toLocaleTimeString(lang === 'en' ? 'en-US' : lang === 'es' ? 'es-ES' : 'pt-PT');
+      document.getElementById('updated-at').textContent = '● live ' + new Date(d.timestamp).toLocaleTimeString(lang === 'en' ? 'en-US' : lang === 'es' ? 'es-ES' : 'en-US');
 
       renderStats(d);
       startCountdown(d.bot.nextBetAt);
@@ -1334,7 +1333,7 @@ export function renderDashboardHtml(): string {
       }
     }
 
-    // ── Settings (config completa) ──────────────────────────────────────────
+    // ── Settings (full configuration) ──────────────────────────────────────────
     let draftConfig = null;
     let configMeta = null;
 
@@ -1378,7 +1377,7 @@ export function renderDashboardHtml(): string {
         setByPath(draftConfig, path, value);
         return true;
       } catch (e) {
-        const message = 'JSON inválido em ' + path + ': ' + (e.message || String(e));
+        const message = 'Invalid JSON in ' + path + ': ' + (e.message || String(e));
         el.setCustomValidity(message);
         el.closest('.field')?.classList.add('invalid');
         el.reportValidity();

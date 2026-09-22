@@ -64,18 +64,18 @@ export class TelegramNotifier {
     this.enabled = config.telegram.enabled && Boolean(this.token && this.chatId);
 
     if (config.telegram.enabled && !this.enabled) {
-      log.warn("Telegram ativado mas TELEGRAM_BOT_TOKEN ou TELEGRAM_CHAT_ID em falta");
+      log.warn("Telegram enabled but TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID missing");
     }
   }
 
-  /** Ativa long-polling para /status /saldo /ultimas (só o chat configurado). */
+  /** Enable long polling for /status /balance /recent (configured chat only). */
   startCommandPolling(provider: CommandSnapshotProvider): void {
     if (!this.enabled || this.pollAbort) return;
     this.snapshotProvider = provider;
     this.pollAbort = new AbortController();
     void this.registerBotCommands();
     void this.pollLoop(this.pollAbort.signal);
-    this.log.info("Telegram: comandos activos (/status /saldo /ultimas /help)");
+    this.log.info("Telegram: commands active (/status /balance /recent /help)");
   }
 
   stopCommandPolling(): void {
@@ -129,7 +129,7 @@ export class TelegramNotifier {
         const body = await res.text();
         this.failCount++;
         this.lastSend = { ok: false, at: new Date().toISOString(), error: `HTTP ${res.status}`, preview };
-        this.log.warn({ status: res.status, body }, "Falha ao enviar Telegram");
+        this.log.warn({ status: res.status, body }, "Failed to send Telegram message");
         return;
       }
 
@@ -139,7 +139,7 @@ export class TelegramNotifier {
       this.failCount++;
       const error = err instanceof Error ? err.message : String(err);
       this.lastSend = { ok: false, at: new Date().toISOString(), error, preview };
-      this.log.warn({ err: error }, "Erro Telegram");
+      this.log.warn({ err: error }, "Telegram error");
     }
   }
 
@@ -153,7 +153,7 @@ export class TelegramNotifier {
 
   private async registerBotCommands(): Promise<void> {
     try {
-      // Evita conflito se algum webhook antigo estiver activo
+      // Avoid conflicts if an old webhook is still active
       await fetch(this.apiUrl("deleteWebhook"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -164,15 +164,15 @@ export class TelegramNotifier {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           commands: [
-            { command: "status", description: "Estado do bot e P&L" },
-            { command: "saldo", description: "Saldo CLOB e staking" },
-            { command: "ultimas", description: "Últimas interações" },
-            { command: "help", description: "Lista de comandos" },
+            { command: "status", description: "Bot status and P&L" },
+            { command: "balance", description: "CLOB balance and staking" },
+            { command: "recent", description: "Recent interactions" },
+            { command: "help", description: "Command list" },
           ],
         }),
       });
     } catch (err) {
-      this.log.warn({ err }, "Falha ao registar comandos Telegram");
+      this.log.warn({ err }, "Failed to register Telegram commands");
     }
   }
 
@@ -213,7 +213,7 @@ export class TelegramNotifier {
           const chatId = update.message?.chat?.id;
           if (!text || chatId === undefined) continue;
           if (String(chatId) !== this.chatId) {
-            this.log.warn({ chatId }, "Telegram: mensagem de chat não autorizado — ignorada");
+            this.log.warn({ chatId }, "Telegram: unauthorized chat message — ignored");
             continue;
           }
           await this.handleCommand(text);
@@ -239,7 +239,7 @@ export class TelegramNotifier {
     }
 
     if (!snap) {
-      await this.send("Bot a arrancar… tenta de novo em segundos.");
+      await this.send("Bot is starting… try again in a few seconds.");
       return;
     }
 
@@ -263,18 +263,18 @@ export class TelegramNotifier {
     const windows = this.config.timing.entry_windows ?? [];
     const timingLine =
       windows.length > 0
-        ? `Entradas: ${windows.map((w) => `T-${w.seconds_before_close}(Δ≥${w.min_delta_bps})`).join(" → ")}`
-        : `Aposta: ${this.config.timing.bet_seconds_before_close}s antes do fecho`;
+        ? `Entries: ${windows.map((w) => `T-${w.seconds_before_close}(Δ≥${w.min_delta_bps})`).join(" → ")}`
+        : `Bet: ${this.config.timing.bet_seconds_before_close}s before close`;
 
     this.notify(
       [
-        "🚀 <b>Polymoney iniciado</b>",
-        `Modo: <b>${escapeHtml(this.config.trading.mode)}</b>`,
-        `Estratégia: <b>${escapeHtml(this.config.strategy.mode)}</b>`,
+        "🚀 <b>Polymoney started</b>",
+        `Mode: <b>${escapeHtml(this.config.trading.mode)}</b>`,
+        `Strategy: <b>${escapeHtml(this.config.strategy.mode)}</b>`,
         timingLine,
         `Size: ${this.config.bet.size_shares} shares`,
         "",
-        "Comandos: /status /saldo /ultimas /help",
+        "Commands: /status /balance /recent /help",
       ].join("\n"),
     );
   }
@@ -284,12 +284,12 @@ export class TelegramNotifier {
 
     this.notify(
       [
-        "📊 <b>Mercado ativo</b>",
+        "📊 <b>Active market</b>",
         escapeHtml(market.title),
         `Slug: <code>${escapeHtml(market.slug)}</code>`,
-        `Fecho: ${new Date(market.windowEndUnix * 1000).toISOString()}`,
-        `Aposta às: ${betAt}`,
-        `Espera: ${waitSeconds.toFixed(0)}s`,
+        `Close: ${new Date(market.windowEndUnix * 1000).toISOString()}`,
+        `Bet at: ${betAt}`,
+        `Wait: ${waitSeconds.toFixed(0)}s`,
       ].join("\n"),
     );
   }
@@ -297,20 +297,20 @@ export class TelegramNotifier {
   notifyBet(result: BetResult, sessionBets: number, sessionUsd: number): void {
     if (!this.config.telegram.notify_on_bet) return;
 
-    const mode = result.paper ? "SIMULADA" : "LIVE";
+    const mode = result.paper ? "SIMULATED" : "LIVE";
     const notional = result.filledCost ?? result.price * result.size;
     const shares = result.filledSize ?? result.size;
 
     this.notify(
       [
-        `✅ <b>Compra ${mode}</b>`,
-        `Lado: <b>${result.side?.toUpperCase()}</b>`,
-        `Preço: ${result.price.toFixed(3)} × ${shares.toFixed(2)} shares = ${fmtUsd(notional)}`,
-        `Mercado: <code>${escapeHtml(result.marketSlug)}</code>`,
-        result.strategyReason ? `Sinal: ${escapeHtml(result.strategyReason)}` : "",
+        `✅ <b>Purchase ${mode}</b>`,
+        `Side: <b>${result.side?.toUpperCase()}</b>`,
+        `Price: ${result.price.toFixed(3)} × ${shares.toFixed(2)} shares = ${fmtUsd(notional)}`,
+        `Market: <code>${escapeHtml(result.marketSlug)}</code>`,
+        result.strategyReason ? `Signal: ${escapeHtml(result.strategyReason)}` : "",
         fmtSignal(result),
-        result.orderId ? `Ordem: <code>${escapeHtml(result.orderId)}</code>` : "",
-        `Sessão: ${sessionBets} compras, ${fmtUsd(sessionUsd)}`,
+        result.orderId ? `Order: <code>${escapeHtml(result.orderId)}</code>` : "",
+        `Session: ${sessionBets} purchases, ${fmtUsd(sessionUsd)}`,
       ]
         .filter(Boolean)
         .join("\n"),
@@ -322,9 +322,9 @@ export class TelegramNotifier {
 
     this.notify(
       [
-        "⏭️ <b>Aposta ignorada</b>",
-        `Mercado: <code>${escapeHtml(result.marketSlug)}</code>`,
-        `Motivo: ${escapeHtml(result.strategyReason ?? "sinal neutro")}`,
+        "⏭️ <b>Bet skipped</b>",
+        `Market: <code>${escapeHtml(result.marketSlug)}</code>`,
+        `Reason: ${escapeHtml(result.strategyReason ?? "neutral signal")}`,
         fmtSignal(result),
       ]
         .filter(Boolean)
@@ -337,12 +337,12 @@ export class TelegramNotifier {
 
     this.notify(
       [
-        "❌ <b>Não conseguiu apostar</b>",
-        `Mercado: <code>${escapeHtml(result.marketSlug)}</code>`,
-        result.side ? `Lado: <b>${result.side.toUpperCase()}</b>` : "",
-        `Motivo: ${escapeHtml(result.error ?? "desconhecido")}`,
-        result.clobDetail ? `Detalhe: <code>${escapeHtml(result.clobDetail.slice(0, 200))}</code>` : "",
-        result.strategyReason ? `Sinal: ${escapeHtml(result.strategyReason)}` : "",
+        "❌ <b>Could not place bet</b>",
+        `Market: <code>${escapeHtml(result.marketSlug)}</code>`,
+        result.side ? `Side: <b>${result.side.toUpperCase()}</b>` : "",
+        `Reason: ${escapeHtml(result.error ?? "unknown")}`,
+        result.clobDetail ? `Details: <code>${escapeHtml(result.clobDetail.slice(0, 200))}</code>` : "",
+        result.strategyReason ? `Signal: ${escapeHtml(result.strategyReason)}` : "",
       ]
         .filter(Boolean)
         .join("\n"),
@@ -354,13 +354,13 @@ export class TelegramNotifier {
 
     this.notify(
       [
-        "⚠️ <b>Ordem enviada, sem compra</b>",
-        `A ordem chegou ao Polymarket mas ninguém vendeu ao teu preço.`,
-        `Mercado: <code>${escapeHtml(result.marketSlug)}</code>`,
-        result.side ? `Lado: <b>${result.side.toUpperCase()}</b>` : "",
-        result.orderId ? `Ordem: <code>${escapeHtml(result.orderId)}</code>` : "",
-        `Motivo: ${escapeHtml(result.error ?? "sem liquidez")}`,
-        result.clobDetail ? `Detalhe: <code>${escapeHtml(result.clobDetail.slice(0, 200))}</code>` : "",
+        "⚠️ <b>Order submitted, no purchase</b>",
+        `The order reached Polymarket but nobody sold at your price.`,
+        `Market: <code>${escapeHtml(result.marketSlug)}</code>`,
+        result.side ? `Side: <b>${result.side.toUpperCase()}</b>` : "",
+        result.orderId ? `Order: <code>${escapeHtml(result.orderId)}</code>` : "",
+        `Reason: ${escapeHtml(result.error ?? "no liquidity")}`,
+        result.clobDetail ? `Details: <code>${escapeHtml(result.clobDetail.slice(0, 200))}</code>` : "",
       ]
         .filter(Boolean)
         .join("\n"),
@@ -370,7 +370,7 @@ export class TelegramNotifier {
   notifyError(message: string): void {
     if (!this.config.telegram.notify_on_error) return;
 
-    this.notify(`⚠️ <b>Erro</b>\n${escapeHtml(message)}`);
+    this.notify(`⚠️ <b>Error</b>\n${escapeHtml(message)}`);
   }
 
   notifyStopped(signal?: string): void {
@@ -378,8 +378,8 @@ export class TelegramNotifier {
 
     this.notify(
       signal
-        ? `🛑 <b>Bot parado</b> (${escapeHtml(signal)})`
-        : "🛑 <b>Bot parado</b>",
+        ? `🛑 <b>Bot stopped</b> (${escapeHtml(signal)})`
+        : "🛑 <b>Bot stopped</b>",
     );
   }
 
@@ -387,22 +387,22 @@ export class TelegramNotifier {
     if (!this.config.telegram.notify_on_pnl) return;
 
     const emoji = record.won ? "💰" : "📉";
-    const resultLabel = record.won ? "GANHOU" : "PERDEU";
+    const resultLabel = record.won ? "WON" : "LOST";
     const pnlSign = (record.pnl ?? 0) >= 0 ? "+" : "";
 
     this.notify(
       [
         `${emoji} <b>${resultLabel}</b>`,
-        `Apostaste: <b>${record.side?.toUpperCase() ?? "?"}</b> → Vencedor: <b>${record.winner?.toUpperCase()}</b>`,
-        `Custo: ${fmtUsd(record.cost)} | Payout: ${fmtUsd(record.payout ?? 0)}`,
+        `Your bet: <b>${record.side?.toUpperCase() ?? "?"}</b> → Winner: <b>${record.winner?.toUpperCase()}</b>`,
+        `Cost: ${fmtUsd(record.cost)} | Payout: ${fmtUsd(record.payout ?? 0)}`,
         `P&L: <b>${pnlSign}${fmtUsd(record.pnl ?? 0)}</b>`,
-        `Mercado: <code>${escapeHtml(record.marketSlug)}</code>`,
+        `Market: <code>${escapeHtml(record.marketSlug)}</code>`,
         record.resolveOpenPrice !== undefined
           ? `BTC: $${record.resolveOpenPrice.toFixed(2)} → $${record.resolveClosePrice?.toFixed(2)}`
           : "",
         "",
-        `<b>Total sessão</b>`,
-        `Resolvidas: ${summary.resolved} | W/L: ${summary.wins}/${summary.losses}`,
+        `<b>Session total</b>`,
+        `Resolved: ${summary.resolved} | W/L: ${summary.wins}/${summary.losses}`,
         `Win rate: ${(summary.winRate * 100).toFixed(1)}%`,
         `P&L total: <b>${summary.totalPnl >= 0 ? "+" : ""}${fmtUsd(summary.totalPnl)}</b>`,
       ]

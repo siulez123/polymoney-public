@@ -7,9 +7,9 @@ import sys
 def ratio(numerator, denominator):
     if not all(isinstance(v, int) and not isinstance(v, bool) and v >= 0
                for v in (numerator, denominator)):
-        return "n/a (contagens indisponíveis)"
+        return "n/a (counts unavailable)"
     if numerator > denominator:
-        return f"n/a (contagens inconsistentes: {numerator}/{denominator})"
+        return f"n/a (inconsistent counts: {numerator}/{denominator})"
     if denominator == 0:
         return f"n/a ({numerator}/{denominator})"
     return f"{numerator}/{denominator} ({100 * numerator / denominator:.2f}%)"
@@ -24,72 +24,72 @@ def render(report, backtest, prospective=None, opportunities=None):
     attempts, signals = counts.get("attempts"), counts.get("attemptsWithSide")
     executed, resolved = counts.get("executed"), pnl.get("resolvedFills")
     lines = [
-        "## Polymoney — últimas 24 horas", "",
-        f"- Serviço ativo: {report.get('serviceActive')}",
+        "## Polymoney — last 24 hours", "",
+        f"- Service active: {report.get('serviceActive')}",
         f"- Commit: {report.get('deployedCommit')}",
-        f"- Estado: {report.get('operational', {}).get('status', 'n/a')}",
-        f"- Mercados apenas shadow: {counts.get('shadowOnlyMarkets', 'n/a')}; com tentativa principal: {counts.get('primaryAttemptMarkets', 'n/a')}",
-        "- A pausa impede novas execuções principais; a observação shadow continua."
-        if report.get('operational', {}).get('tradingActive') is False else "- Consultar estado operacional antes de interpretar ausência de execuções.",
-        f"- Tentativas com lado / total: {ratio(signals, attempts)}",
-        f"- Execuções / tentativas com lado: {ratio(executed, signals)}",
-        f"- Execuções / total: {ratio(executed, attempts)}",
-        f"- Resolvidas / execuções: {ratio(resolved, executed)}",
-        "- Contagens por resultado final de mercado; incluem paper. Ter lado não garante elegibilidade CLOB.",
-        f"- Live resolvidas: {pnl.get('liveResolvedFills', 'n/a')}; paper resolvidas: {pnl.get('paperResolvedFills', 'n/a')}",
+        f"- Status: {report.get('operational', {}).get('status', 'n/a')}",
+        f"- Shadow-only markets: {counts.get('shadowOnlyMarkets', 'n/a')}; with primary attempt: {counts.get('primaryAttemptMarkets', 'n/a')}",
+        "- Pausing prevents new primary executions; shadow observation continues."
+        if report.get('operational', {}).get('tradingActive') is False else "- Check operational state before interpreting a lack of executions.",
+        f"- Attempts with a side / total: {ratio(signals, attempts)}",
+        f"- Executions / attempts with a side: {ratio(executed, signals)}",
+        f"- Executions / total: {ratio(executed, attempts)}",
+        f"- Resolved / executions: {ratio(resolved, executed)}",
+        "- Counts by final market outcome; include paper. Having a side does not guarantee CLOB eligibility.",
+        f"- Live resolved: {pnl.get('liveResolvedFills', 'n/a')}; paper resolved: {pnl.get('paperResolvedFills', 'n/a')}",
         f"- W/L: {pnl.get('wins', 'n/a')}/{pnl.get('losses', 'n/a')}",
-        f"- P&L líquido: ${pnl.get('totalPnlUsd', 'n/a')}; fees: ${pnl.get('totalFeesUsd', 'n/a')}",
+        f"- Net P&L: ${pnl.get('totalPnlUsd', 'n/a')}; fees: ${pnl.get('totalFeesUsd', 'n/a')}",
         "",
-        "### Backtest descritivo — holdout móvel", "",
-        f"- Mercados: {backtest['sample']['distinctMarkets']}; holdout: {backtest['sample']['holdoutMarkets']}",
-        "- Comparações sucessivas sobrepõem dados; não são confirmações independentes.",
+        "### Descriptive backtest — rolling holdout", "",
+        f"- Markets: {backtest['sample']['distinctMarkets']}; holdout: {backtest['sample']['holdoutMarkets']}",
+        "- Successive comparisons overlap data; they are not independent confirmations.",
     ]
     for s in backtest["strategies"]:
         h = s["holdout"]
         lines.append(f"- {s['mode']}: {h['trades']} trades; WR {percent(h['winRate'])}; P&L ${h['feeAwarePnlUsd']}; ROI {percent(h['roi'])}; drawdown ${h['maxDrawdownUsd']}")
-    lines += ["", "### Validação por estratégia e janela — dias UTC completos", "",
-              "- Exige 3 blocos consecutivos com evidência anterior; aprovação significa apenas revisão paper.",
-              "- Blocos sem sobreposição podem continuar correlacionados. Exige validação prospetiva e avaliação do drawdown/latência.",
-              "", "| Estratégia | Janela | Blocos aprovados consecutivos | Estado | Média P&L/bloco | Desvio padrão |",
+    lines += ["", "### Validation by strategy and window — complete UTC days", "",
+              "- Requires 3 consecutive blocks with prior evidence; passing only authorizes paper review.",
+              "- Non-overlapping blocks may still be correlated. Requires prospective validation and drawdown/latency assessment.",
+              "", "| Strategy | Window | Consecutive passing blocks | Status | Mean P&L/block | Standard deviation |",
               "|---|---|---:|---|---:|---:|"]
     for s in backtest["strategies"]:
         for w in s["windows"]:
             v = w.get("validation")
             if not v:
-                lines.append(f"| {s['mode']} | {w['entry']} | n/a | validação indisponível | n/a | n/a |")
+                lines.append(f"| {s['mode']} | {w['entry']} | n/a | validation unavailable | n/a | n/a |")
                 continue
             latest = v.get('blocks', [{}])[-1] if v.get('blocks') else {}
-            detail = f"{v['status']}; último={latest.get('holdoutStatus', 'n/a')}, anterior={latest.get('priorStatus', 'n/a')}"
+            detail = f"{v['status']}; latest={latest.get('holdoutStatus', 'n/a')}, prior={latest.get('priorStatus', 'n/a')}"
             lines.append(f"| {s['mode']} | {w['entry']} | {v['consecutivePassingBlocks']}/{v['requiredConsecutiveBlocks']} | {detail} | {v['meanBlockPnlUsd']} | {v['stddevBlockPnlUsd']} |")
     if prospective:
-        lines += ["", "### Experiência shadow prospetiva — período fixo", "",
-                  f"- {prospective['startUtc']} a {prospective['endUtc']}: {prospective['status']}",
-                  "- Sem ordens. Nenhum resultado promove automaticamente uma estratégia."]
+        lines += ["", "### Prospective shadow experiment — fixed period", "",
+                  f"- {prospective['startUtc']} to {prospective['endUtc']}: {prospective['status']}",
+                  "- No orders. No result automatically promotes a strategy."]
         for hypothesis in prospective['hypotheses']:
             blocks = hypothesis['blocks']
             trades = sum(b['metrics']['trades'] for b in blocks)
             net = sum(b['metrics']['feeAwarePnlUsd'] for b in blocks)
             excluded = sum(b['timingExcludedMarkets'] for b in blocks)
-            lines.append(f"- {hypothesis['mode']} {hypothesis['entry']}: {trades} resolvidas shadow; P&L ${net:.2f}; {excluded} observações excluídas por horário.")
+            lines.append(f"- {hypothesis['mode']} {hypothesis['entry']}: {trades} resolved shadow trades; P&L ${net:.2f}; {excluded} observations excluded by timing.")
     if opportunities:
         metrics = opportunities['metrics']
-        lines += ["", "### Scanner público — pares complementares do mesmo mercado", "",
-                  f"- Estado: {opportunities['status']}; mercados selecionados: {opportunities['selectedMarkets']}; rondas: {opportunities['completedRounds']}/{opportunities['requestedRounds']}",
-                  f"- Observações positivas / pares avaliáveis: {ratio(metrics['positivePairObservations'], metrics['evaluatedPairs'])}",
-                  f"- Mercados positivos distintos: {metrics['distinctPositiveMarkets']}; episódios: {metrics['opportunityEpisodes']}; repetidos: {metrics['repeatedEpisodes']}",
-                  f"- Maior intervalo entre amostras positivas consecutivas: {metrics['longestObservedSpanSeconds']} s",
-                  "- Recolhas curtas por execução; não é monitorização contínua nem prova de execução.",
-                  "- Sem ordens. Fees por mercado, profundidade reduzida a 90% e reservas de custos assumidas.",
-                  f"- Rejeições: {json.dumps(metrics['rejections'], sort_keys=True)}",
-                  f"- Erros de recolha: {json.dumps(opportunities['collectionErrors'], sort_keys=True)}"]
+        lines += ["", "### Public scanner — complementary pairs in the same market", "",
+                  f"- Status: {opportunities['status']}; selected markets: {opportunities['selectedMarkets']}; rounds: {opportunities['completedRounds']}/{opportunities['requestedRounds']}",
+                  f"- Positive observations / evaluable pairs: {ratio(metrics['positivePairObservations'], metrics['evaluatedPairs'])}",
+                  f"- Distinct positive markets: {metrics['distinctPositiveMarkets']}; episodes: {metrics['opportunityEpisodes']}; repeated: {metrics['repeatedEpisodes']}",
+                  f"- Longest span between consecutive positive samples: {metrics['longestObservedSpanSeconds']} s",
+                  "- Short collections per run; not continuous monitoring or proof of execution.",
+                  "- No orders. Market-specific fees, depth reduced to 90% and assumed cost reserves.",
+                  f"- Rejections: {json.dumps(metrics['rejections'], sort_keys=True)}",
+                  f"- Collection errors: {json.dumps(opportunities['collectionErrors'], sort_keys=True)}"]
         peak = metrics['peakIndicativeOpportunity']
         if peak:
-            lines += [f"- Melhor margem potencial observada: ${peak['netEdgeUsd']}; custo total estimado: ${peak['totalCostUsd']}; fees: ${peak['feesUsd']}; reserva: ${peak['costReserveUsd']}",
-                      f"- Custo máximo de uma perna sem cobertura: ${peak['maximumUnhedgedLegCostUsd']}. As duas compras não são atómicas."]
+            lines += [f"- Best potential edge observed: ${peak['netEdgeUsd']}; estimated total cost: ${peak['totalCostUsd']}; fees: ${peak['feesUsd']}; reserve: ${peak['costReserveUsd']}",
+                      f"- Maximum unhedged leg cost: ${peak['maximumUnhedgedLegCostUsd']}. The two purchases are not atomic."]
         else:
-            lines.append("- Nenhuma oportunidade líquida positiva observada nos dados avaliáveis.")
-        lines.append("- Não somar observações repetidas como lucro; sem P&L realizado ou rendimento diário projetado.")
-    lines.append("\nDetalhes dos blocos, fees, ROI, drawdown e Wilson 95% no artefacto sanitizado (30 dias).")
+            lines.append("- No positive net opportunity observed in evaluable data.")
+        lines.append("- Do not add repeated observations as profit; no realized P&L or projected daily income.")
+    lines.append("\nBlock details, fees, ROI, drawdown and Wilson 95% in the sanitized artifact (30 days).")
     return "\n".join(lines) + "\n"
 
 

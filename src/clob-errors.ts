@@ -1,4 +1,4 @@
-/** Resposta típica do POST /order na Polymarket CLOB */
+/** Typical POST /order response from Polymarket CLOB */
 export interface ClobOrderResponse {
   success?: boolean;
   errorMsg?: string;
@@ -33,31 +33,31 @@ export function safeJson(obj: unknown, maxLen = 400): string {
 function translateErrorMsg(msg: string): string {
   const lower = msg.toLowerCase();
   if (lower.includes("order signer address") || lower.includes("address of the api key")) {
-    return "API key ligada ao signer (EOA), não ao perfil — bug Polymarket em contas deposit wallet; ver issue #65";
+    return "API key bound to signer (EOA), not the profile — Polymarket deposit wallet bug; see issue #65";
   }
   if (lower.includes("maker address not allowed") || lower.includes("deposit wallet flow")) {
-    return "conta deposit wallet — usa signature_type: 3 no config.yaml (não 1)";
+    return "deposit wallet account — use signature_type: 3 in config.yaml (not 1)";
   }
   if (lower.includes("not enough balance") || lower.includes("insufficient balance")) {
-    return "saldo USDC insuficiente na conta Polymarket";
+    return "insufficient USDC balance in the Polymarket account";
   }
   if (lower.includes("allowance")) {
-    return "falta autorizar USDC para trading (allowance) — faz um trade manual uma vez no site";
+    return "USDC trading allowance required — authorize trading on the website";
   }
   if (lower.includes("min size") || lower.includes("minimum")) {
-    return "tamanho da ordem abaixo do mínimo do mercado";
+    return "order size below the market minimum";
   }
   if (lower.includes("geoblock") || lower.includes("restricted") || lower.includes("blocked")) {
-    return "região bloqueada pela Polymarket (Amsterdam/NL e EUA não funcionam — usa VPS fora da lista bloqueada)";
+    return "region blocked by Polymarket — trading is unavailable in restricted jurisdictions";
   }
   if (lower.includes("signature") || lower.includes("invalid")) {
-    return "assinatura inválida — confirma PRIVATE_KEY e DEPOSIT_WALLET_ADDRESS (endereço do perfil)";
+    return "invalid signature — verify PRIVATE_KEY and DEPOSIT_WALLET_ADDRESS (profile address)";
   }
   if (lower.includes("market not found") || lower.includes("closed")) {
-    return "mercado fechado ou indisponível";
+    return "market closed or unavailable";
   }
   if (lower.includes("fok") || lower.includes("fill")) {
-    return "ordem cancelada — não houve vendedor ao preço pedido";
+    return "order cancelled — no seller at the requested price";
   }
   return msg;
 }
@@ -89,12 +89,12 @@ export function formatClobOrderFailure(
   if (r.success === false) {
     if (taking === 0 && (orderType === "FAK" || orderType === "FOK")) {
       return {
-        message: `Polymarket: ordem ${orderType} cancelada — ninguém vendeu ao preço pedido`,
+        message: `Polymarket: order ${orderType} cancelled — nobody sold at the requested price`,
         detail,
       };
     }
     return {
-      message: `Polymarket recusou a ordem (estado: ${status})`,
+      message: `Polymarket rejected the order (status: ${status})`,
       detail,
     };
   }
@@ -102,29 +102,29 @@ export function formatClobOrderFailure(
   if (!extractOrderId(r)) {
     if (taking === 0) {
       return {
-        message: "Polymarket: sem compra — nenhuma share vendida ao teu preço neste momento",
+        message: "Polymarket: no purchase — no shares sold at your price at this time",
         detail,
       };
     }
     return {
-      message: `Polymarket: resposta sem ID de ordem (estado: ${status}, shares: ${taking})`,
+      message: `Polymarket: response without an order ID (status: ${status}, shares: ${taking})`,
       detail,
     };
   }
 
-  return { message: "Polymarket: erro desconhecido ao colocar ordem", detail };
+  return { message: "Polymarket: unknown error placing order", detail };
 }
 
 export function formatClobException(err: unknown): { message: string; detail: string } {
   if (err && typeof err === "object" && "data" in err) {
     const apiErr = err as { message?: string; status?: number; data?: unknown };
     const fromData = formatClobOrderFailure(apiErr.data, "?");
-    if (fromData.message !== "Polymarket: erro desconhecido ao colocar ordem") {
+    if (fromData.message !== "Polymarket: unknown error placing order") {
       return fromData;
     }
     const prefix = apiErr.status ? `[HTTP ${apiErr.status}] ` : "";
     return {
-      message: `${prefix}${apiErr.message ?? "Erro na API Polymarket"}`,
+      message: `${prefix}${apiErr.message ?? "Polymarket API error"}`,
       detail: safeJson(apiErr.data ?? err),
     };
   }
@@ -143,13 +143,13 @@ export function formatUnfilledMessage(
 
   if (taking === 0) {
     return {
-      message: `Ordem ${orderType} enviada mas sem compra — sem vendedores ao preço (estado: ${status})`,
+      message: `Order ${orderType} submitted but unfilled — no sellers at the price (status: ${status})`,
       detail,
     };
   }
 
   return {
-    message: `Compra parcial apenas ${taking} shares (estado: ${status})`,
+    message: `Partial purchase only ${taking} shares (status: ${status})`,
     detail,
   };
 }

@@ -42,7 +42,7 @@ export async function initSecureClient(
   if (secureClient) return secureClient;
 
   if (!secrets.privateKey?.startsWith("0x")) {
-    throw new Error("PRIVATE_KEY é obrigatório para SecureClient");
+    throw new Error("PRIVATE_KEY is required for SecureClient");
   }
 
   secureClient = await createSecureClient({
@@ -52,7 +52,7 @@ export async function initSecureClient(
   const { signer, wallet, walletType } = secureClient.account;
   log.info(
     { signer, wallet, walletType },
-    "SecureClient autenticado (deposit wallet)",
+    "SecureClient authenticated (deposit wallet)",
   );
 
   if (
@@ -64,7 +64,7 @@ export async function initSecureClient(
         envDeposit: secrets.depositWalletAddress,
         derivedDeposit: wallet,
       },
-      "DEPOSIT_WALLET_ADDRESS no .env não coincide com o deposit wallet derivado — a usar o derivado para trading",
+      "DEPOSIT_WALLET_ADDRESS in .env differs from the derived deposit wallet — using the derived wallet for trading",
     );
   }
 
@@ -250,7 +250,7 @@ export async function placeSecureBuyOrder(
     || (!useMarketOrder && limit.size < 0.0001)
   ) {
     return {
-      error: "Montante quantizado para o CLOB ficou abaixo do mínimo",
+      error: "Quantized CLOB amount fell below the minimum",
       detail: JSON.stringify({ price, size, market, limit }),
       telemetry: {
         ...baseTelemetry,
@@ -273,7 +273,7 @@ export async function placeSecureBuyOrder(
         limitPrice: limit.price,
         useMarketOrder,
       },
-      "Montantes da ordem (quantizados para CLOB)",
+      "Order amounts (quantized for CLOB)",
     );
 
     let response: OrderResponse;
@@ -303,7 +303,7 @@ export async function placeSecureBuyOrder(
             candidateAmountUsd: candidate,
             ...precision,
           },
-          "Precisão final da ordem assinada (sanitizada)",
+          "Final signed order precision (sanitized)",
         );
 
         finalPrecision = precision;
@@ -316,7 +316,7 @@ export async function placeSecureBuyOrder(
 
       if (!signedOrder) {
         return {
-          error: "invalid_amounts_local: não foi possível construir uma ordem assinada com precisão CLOB válida",
+          error: "invalid_amounts_local: could not build a signed order with valid CLOB precision",
           detail: JSON.stringify({
             requestedAmountUsd: market.amountUsd.toFixed(2),
             attempts: candidates.length,
@@ -342,7 +342,7 @@ export async function placeSecureBuyOrder(
             signedAmountUsd,
             attempts: candidates.indexOf(signedAmountUsd) + 1,
           },
-          "Max spend reduzido para cumprir a precisão final do CLOB",
+          "Max spend reduced to meet final CLOB precision",
         );
       }
 
@@ -361,13 +361,13 @@ export async function placeSecureBuyOrder(
       });
     }
 
-    log.info({ response, useMarketOrder, orderType }, "Resposta SecureClient");
+    log.info({ response, useMarketOrder, orderType }, "SecureClient response");
 
     if (!response.ok) {
       const rejectedStatus = "status" in response ? String(response.status) : undefined;
       const classified = classifyClobResult(response.message, response.code, rejectedStatus, response);
       return {
-        error: response.message ?? `Ordem rejeitada (${String(response.code)})`,
+        error: response.message ?? `Order rejected (${String(response.code)})`,
         detail: sanitizeClobFailureDetail(response),
         telemetry: {
           ...baseTelemetry,
@@ -407,7 +407,7 @@ export async function placeSecureBuyOrder(
     };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    log.error({ err: message }, "Exceção SecureClient ao colocar ordem");
+    log.error({ err: message }, "SecureClient exception while placing order");
     const records = collectClobRecords(err);
     const code = firstClobField(records, ["code", "errorCode"]);
     const status = firstClobField(records, ["status", "statusCode"]);

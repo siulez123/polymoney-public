@@ -7,8 +7,8 @@ export interface EntryWindow {
 }
 
 /**
- * Janelas de entrada ordenadas da mais cedo (maior T) para a mais tarde.
- * Se `entry_windows` estiver vazio, devolve uma única janela com o timing/delta clássicos.
+ * Entry windows sorted from earliest (highest T) to latest.
+ * If `entry_windows` is empty, return a single window with the legacy timing/delta.
  */
 export function resolveEntryWindows(config: AppConfig): EntryWindow[] {
   const raw = config.timing.entry_windows ?? [];
@@ -50,8 +50,8 @@ export function earliestObservationSeconds(config: AppConfig): number {
 }
 
 /**
- * Devolve a banda shadow ativa para um gatilho WebSocket.
- * As bandas terminam no T shadow seguinte e nunca avançam para dentro da primeira janela live.
+ * Return the active shadow band for a WebSocket trigger.
+ * Bands end at the next shadow T and never extend into the first live window.
  */
 export function activeShadowLiquidityWindow(
   config: AppConfig,

@@ -60,7 +60,7 @@ export function isDashboardAuthorized(req: IncomingMessage): boolean {
   return tokensMatch(provided, expected);
 }
 
-/** Cookie para PWA / ecrã inicial sem ?token= em cada pedido. */
+/** Cookie for PWA / home screen without ?token= on every request. */
 export function dashboardAuthCookieHeader(token: string): string {
   return (
     `pm_dashboard_token=${encodeURIComponent(token)}; Path=/; Max-Age=31536000; SameSite=Lax`
@@ -70,11 +70,11 @@ export function dashboardAuthCookieHeader(token: string): string {
 export function sendDashboardUnauthorized(res: ServerResponse): void {
   res.writeHead(401, { "Content-Type": "text/html; charset=utf-8" });
   res.end(`<!DOCTYPE html>
-<html lang="pt">
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Polymoney — Acesso negado</title>
+  <title>Polymoney — Access denied</title>
   <style>
     body { font-family: system-ui, sans-serif; background: #0b0f14; color: #e8eef5; padding: 2rem; max-width: 32rem; margin: 0 auto; }
     h1 { font-size: 1.25rem; margin-bottom: 0.75rem; }
@@ -83,9 +83,9 @@ export function sendDashboardUnauthorized(res: ServerResponse): void {
   </style>
 </head>
 <body>
-  <h1>Acesso negado</h1>
-  <p>O dashboard requer um token. Abre o link com <code>?token=...</code> no URL.</p>
-  <p>Exemplo: <code>/pnl?token=SEU_TOKEN</code></p>
+  <h1>Access denied</h1>
+  <p>The dashboard requires a token. Open the link with <code>?token=...</code> in the URL.</p>
+  <p>Example: <code>/pnl?token=YOUR_TOKEN</code></p>
 </body>
 </html>`);
 }

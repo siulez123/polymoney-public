@@ -61,7 +61,7 @@ function parseMarket(event: GammaEvent, market: GammaMarket, windowStartUnix: nu
   const downIndex = outcomes.findIndex((o) => o.toLowerCase() === "down");
 
   if (upIndex === -1 || downIndex === -1) {
-    throw new Error(`Mercado ${market.slug} não tem outcomes Up/Down: ${outcomes.join(", ")}`);
+    throw new Error(`Market ${market.slug} has no Up/Down outcomes: ${outcomes.join(", ")}`);
   }
 
   const endUnix = Math.floor(new Date(market.endDate).getTime() / 1000);
@@ -98,14 +98,14 @@ export async function discoverCurrentMarket(
     const windowStart = baseWindow + offset * config.market.window_seconds;
     const slug = slugForWindow(config, windowStart);
 
-    log.debug({ slug, windowStart }, "A procurar mercado");
+    log.debug({ slug, windowStart }, "Searching for market");
 
     const event = await fetchEventBySlug(config, slug);
     if (!event?.markets?.length) continue;
 
     const market = event.markets[0]!;
     if (market.closed || event.closed) {
-      log.debug({ slug }, "Mercado fechado, a tentar próximo");
+      log.debug({ slug }, "Market closed, trying the next one");
       continue;
     }
 
@@ -119,7 +119,7 @@ export async function discoverCurrentMarket(
         upTokenId: discovered.upTokenId,
         downTokenId: discovered.downTokenId,
       },
-      "Mercado descoberto",
+      "Market discovered",
     );
 
     return discovered;
@@ -146,7 +146,7 @@ export async function waitForMarket(
       }
     }
 
-    log.warn({ slug }, "Mercado ainda não disponível, a tentar de novo...");
+    log.warn({ slug }, "Market not yet available, retrying...");
     await sleep(config.market.discovery_retry_ms);
   }
 }
@@ -156,7 +156,7 @@ export function msUntilBetTime(market: DiscoveredMarket, config: AppConfig): num
   return betAtUnix * 1000 - Date.now();
 }
 
-/** ms até o instante `windowEnd - secondsBeforeClose` */
+/** ms until `windowEnd - secondsBeforeClose` */
 export function msUntilSecondsBeforeClose(
   market: DiscoveredMarket,
   secondsBeforeClose: number,

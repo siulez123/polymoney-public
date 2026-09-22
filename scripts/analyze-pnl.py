@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Análise rápida do pnl.json no VPS."""
+"""Quick pnl.json analysis on the VPS."""
 from __future__ import annotations
 
 import json
