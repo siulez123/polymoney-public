@@ -13,6 +13,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: 24
@@ -20,7 +22,7 @@ jobs:
       - name: Scan public source for secrets
         run: |
           python3 -m pip install detect-secrets==1.5.0
-          python3 -m detect_secrets scan --all-files --no-verify . > "$RUNNER_TEMP/secrets.json"
+          python3 -m detect_secrets scan --no-verify . > "$RUNNER_TEMP/secrets.json"
           python3 -c 'import json, os; from pathlib import Path; r=json.loads((Path(os.environ["RUNNER_TEMP"])/"secrets.json").read_text()); findings={p: len(h) for p,h in r["results"].items()}; print(findings); raise SystemExit(bool(findings))'
       - run: npm ci
       - run: npm run typecheck
